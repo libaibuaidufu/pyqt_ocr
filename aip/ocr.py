@@ -9,11 +9,11 @@ import re
 import sys
 import math
 import time
-from .base import AipBase
-from .base import base64
-from .base import json
-from .base import urlencode
-from .base import quote
+from aip.base import AipBase
+from aip.base import base64
+from aip.base import json
+from aip.base import urlencode
+from aip.base import quote
 
 class AipOcr(AipBase):
 

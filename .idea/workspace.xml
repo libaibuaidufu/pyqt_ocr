@@ -1,10 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="dace1afd-3706-4d9d-93b9-8613564c7e93" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/last_v.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/this_v.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+    <list default="true" id="f7cd04d4-4e97-4e73-b204-1b3fd1eb6c25" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/last.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/pyqt_orc.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/aip/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/bodyanalysis.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/easydl.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/face.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/imagecensor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/imageclassify.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/imageprocess.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/imagesearch.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/kg.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/nlp.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/ocr.py" beforeDir="false" afterPath="$PROJECT_DIR$/aip/ocr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/aip/speech.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/last_v.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orc.py" beforeDir="false" afterPath="$PROJECT_DIR$/orc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/this_v.png" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -14,11 +38,14 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/README.md">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/orc.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="400">
-              <caret line="16" column="67" selection-start-line="16" selection-start-column="67" selection-end-line="16" selection-end-column="67" />
+            <state relative-caret-position="325">
+              <caret line="13" column="11" lean-forward="true" selection-start-line="13" selection-start-column="11" selection-end-line="13" selection-end-column="11" />
+              <folding>
+                <element signature="e#135#154#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -26,16 +53,39 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2075">
-              <caret line="76" selection-start-line="76" selection-end-line="76" />
+            <state relative-caret-position="546">
+              <caret line="279" column="36" lean-forward="true" selection-start-line="279" selection-start-column="36" selection-end-line="279" selection-end-column="36" />
               <folding>
-                <element signature="e#76#85#0" expanded="true" />
+                <element signature="e#0#19#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/readme.md">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="250">
+              <caret line="10" column="36" selection-start-line="10" selection-start-column="36" selection-end-line="10" selection-end-column="36" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/config.ini">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="200">
+              <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
+            </state>
+          </provider>
+        </entry>
+      </file>
     </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>16895029</find>
+    </findStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -43,10 +93,10 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/cut_img_qt_2.py" />
         <option value="$PROJECT_DIR$/orc.py" />
+        <option value="$PROJECT_DIR$/config.ini" />
         <option value="$PROJECT_DIR$/main.py" />
-        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/readme.md" />
       </list>
     </option>
   </component>
@@ -71,7 +121,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -79,10 +128,16 @@
               <item name="pyqt_orc" type="b2602c69:ProjectViewProjectNode" />
               <item name="pyqt_orc" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="pyqt_orc" type="b2602c69:ProjectViewProjectNode" />
+              <item name="pyqt_orc" type="462c0819:PsiDirectoryNode" />
+              <item name="aip" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -110,7 +165,7 @@
     </option>
   </component>
   <component name="RunManager">
-    <configuration name="cut_img_qt_2" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="pyqt_orc" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -123,7 +178,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="C:\Users\libai\dfk-common\日常\github_project\pyqt_orc\main.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -134,7 +189,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.cut_img_qt_2" />
+        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>
@@ -143,24 +198,24 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="dace1afd-3706-4d9d-93b9-8613564c7e93" name="Default Changelist" comment="" />
-      <created>1586310738742</created>
+      <changelist id="f7cd04d4-4e97-4e73-b204-1b3fd1eb6c25" name="Default Changelist" comment="" />
+      <created>1586312112246</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1586310738742</updated>
-      <workItem from="1586310739867" duration="480000" />
+      <updated>1586312112246</updated>
+      <workItem from="1586312113443" duration="474000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="480000" />
+    <option name="totallyTimeSpent" value="474000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24973205" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24812433" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" />
@@ -187,33 +242,60 @@
     <option name="version" value="1" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/pyqt_orc$cut_img_qt_2.coverage" NAME="cut_img_qt_2 Coverage Results" MODIFIED="1586310961318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/pyqt_orc$main.coverage" NAME="main Coverage Results" MODIFIED="1586312440666" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/aip/ocr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="175">
+          <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
+          <folding>
+            <element signature="e#40#49#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/aip/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="125">
+          <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+          <folding>
+            <element signature="e#45#56#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/orc.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1850">
-          <caret line="74" column="47" lean-forward="true" selection-start-line="74" selection-start-column="47" selection-end-line="74" selection-end-column="47" />
+        <state relative-caret-position="325">
+          <caret line="13" column="11" lean-forward="true" selection-start-line="13" selection-start-column="11" selection-end-line="13" selection-end-column="11" />
           <folding>
-            <element signature="e#135#144#0" expanded="true" />
+            <element signature="e#135#154#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config.ini">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="200">
+          <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2075">
-          <caret line="76" selection-start-line="76" selection-end-line="76" />
+        <state relative-caret-position="546">
+          <caret line="279" column="36" lean-forward="true" selection-start-line="279" selection-start-column="36" selection-end-line="279" selection-end-column="36" />
           <folding>
-            <element signature="e#76#85#0" expanded="true" />
+            <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md">
+    <entry file="file://$PROJECT_DIR$/readme.md">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="400">
-          <caret line="16" column="67" selection-start-line="16" selection-start-column="67" selection-end-line="16" selection-end-column="67" />
+        <state relative-caret-position="250">
+          <caret line="10" column="36" selection-start-line="10" selection-start-column="36" selection-end-line="10" selection-end-column="36" />
         </state>
       </provider>
     </entry>

@@ -4,17 +4,15 @@
 # @File    : orc.py
 # @author  : dfkai
 # @Software: PyCharm
+import configparser
 import re
 
 from aip import AipOcr
 
 
-def get_content(img_path):
+# def get_content(img_path, is_precision=False):
+def get_content(APP_ID,API_KEY,SECRET_KEY,img_path, is_precision=False):
     """ 你的 APPID AK SK """
-    APP_ID = 'APP_ID'
-    API_KEY = 'API_KEY'
-    SECRET_KEY = 'SECRET_KEY'
-
     client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
 
     """ 读取图片 """
@@ -26,8 +24,13 @@ def get_content(img_path):
     image = get_file_content(img_path)
 
     """ 调用通用文字识别, 图片参数为本地图片 """
-    # rsp = client.basicAccurate(image)
-    rsp = client.basicGeneral(image)
+    if is_precision:
+        rsp = client.basicAccurate(image)
+    else:
+        rsp = client.basicGeneral(image)
+    if "error_code" in rsp:
+        return "百度配置出错 或者 未扫描到内容"
+    # {'error_code': 14, 'error_msg': 'IAM Certification failed'}
     # print(rsp["words_result"])
     content = ""
     last_num = 0
@@ -56,9 +59,7 @@ def get_content(img_path):
         elif word_num > last_num + 3:
             content += "\n" + word
         else:
-            # print(content)
-            content += "1"
-            # print(word)
+            # content += "1"
             content += word
 
         if word[-1] in (".", ":", "。"):
@@ -68,8 +69,6 @@ def get_content(img_path):
 
         last_num = word_num
     # print(content)
-    return content
+    return content.strip()
 
 
-if __name__ == '__main__':
-    get_content("D:/W截图_20190904_17-32-11.jpg")
