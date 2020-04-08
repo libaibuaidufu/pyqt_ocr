@@ -2,33 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f7cd04d4-4e97-4e73-b204-1b3fd1eb6c25" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/last.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pyqt_orc.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/aip/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/bodyanalysis.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/easydl.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/face.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/imagecensor.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/imageclassify.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/imageprocess.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/imagesearch.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/kg.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/nlp.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/ocr.py" beforeDir="false" afterPath="$PROJECT_DIR$/aip/ocr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aip/speech.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/last_v.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/orc.py" beforeDir="false" afterPath="$PROJECT_DIR$/orc.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/this_v.png" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -62,11 +37,20 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/readme.md">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="250">
               <caret line="10" column="36" selection-start-line="10" selection-start-column="36" selection-end-line="10" selection-end-column="36" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.gitignore">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="75">
+              <caret line="3" column="5" selection-start-line="3" selection-start-column="5" selection-end-line="3" selection-end-column="5" />
             </state>
           </provider>
         </entry>
@@ -97,22 +81,13 @@
         <option value="$PROJECT_DIR$/config.ini" />
         <option value="$PROJECT_DIR$/main.py" />
         <option value="$PROJECT_DIR$/readme.md" />
-      </list>
-    </option>
-  </component>
-  <component name="ProjectConfigurationFiles">
-    <option name="files">
-      <list>
-        <option value="$PROJECT_DIR$/.idea/pyqt_orc.iml" />
-        <option value="$PROJECT_DIR$/.idea/misc.xml" />
-        <option value="$PROJECT_DIR$/.idea/vcs.xml" />
-        <option value="$PROJECT_DIR$/.idea/modules.xml" />
-        <option value="$PROJECT_DIR$/.idea/deployment.xml" />
+        <option value="$PROJECT_DIR$/.gitignore" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="406" />
+    <option name="x" value="80" />
+    <option name="y" value="81" />
     <option name="width" value="1924" />
     <option name="height" value="1056" />
   </component>
@@ -141,6 +116,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
@@ -203,19 +179,19 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1586312112246</updated>
-      <workItem from="1586312113443" duration="474000" />
+      <workItem from="1586312113443" duration="556000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="474000" />
+    <option name="totallyTimeSpent" value="556000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <frame x="80" y="81" width="1924" height="1056" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24812433" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24973032" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" />
@@ -296,6 +272,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="250">
           <caret line="10" column="36" selection-start-line="10" selection-start-column="36" selection-end-line="10" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="3" column="5" selection-start-line="3" selection-start-column="5" selection-end-line="3" selection-end-column="5" />
         </state>
       </provider>
     </entry>
