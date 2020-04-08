@@ -11,7 +11,9 @@ SECRET_KEY = 'SECRET_KEY'
 ```
 然后启动。。
 此版本
+
 ![image](https://github.com/libaibuaidufu/pyqt_orc/blob/master/this_v.png)
 
 本来的最新版 代码放在旧的硬盘里一直没有拷过来。。
+
 ![image](https://github.com/libaibuaidufu/pyqt_orc/blob/master/last_v.png)
