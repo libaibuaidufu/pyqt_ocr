@@ -4,7 +4,7 @@ import sys
 
 import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
-from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QImage,QCursor
+from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout
 
@@ -12,7 +12,7 @@ from orc import get_content
 
 
 class QPixmap2QByteArray(object):
-    def __call__(self, q_image) :
+    def __call__(self, q_image):
         """
             Args:
                  q_image: 待转化为字节流的QImage。
@@ -53,8 +53,8 @@ class MyWin(QWidget):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowTitle("截图")
         self.resize(400, 300)
-        image_path = self.resource_path("one3.ico")
-        # self.setWindowIcon(QIcon("one3.ico"))
+        image_path = self.resource_path("image\logo.ico")
+        # self.setWindowIcon(QIcon("image\logo.ico"))
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
@@ -97,7 +97,7 @@ class MyWin(QWidget):
         self.trayIconMenu.addSeparator()
         self.trayIconMenu.addAction(quitAction)
         self.trayIcon = QSystemTrayIcon(self)
-        self.trayIcon.setIcon(QIcon("one3.ico"))
+        self.trayIcon.setIcon(QIcon("image\logo.ico"))
         self.trayIcon.setContextMenu(self.trayIconMenu)
         self.trayIcon.show()
 
@@ -112,14 +112,16 @@ class MyWin(QWidget):
         self.showNormal()
 
     def read_config(self):
-        config_path = self.resource_path("config.ini")
         self.config = configparser.ConfigParser()
+        config_path = self.resource_path("config\config.ini")
         self.config.read(config_path)
+        # config_path = pkgutil.get_data('config', 'config.ini')
+        # help_utf = config_path.decode('UTF-8', 'ignore')
+        # self.config.read_string(help_utf)
         baidu = self.config["baidu"]
         self.APP_ID = baidu["APP_ID"]
         self.API_KEY = baidu["API_KEY"]
         self.SECRET_KEY = baidu["SECRET_KEY"]
-        # print("done",self.API_KEY,self.APP_ID,self.SECRET_KEY)
 
     def click_btn(self):
         self.showMinimized()
@@ -193,7 +195,8 @@ class ScreenShotsWin(QWidget):
             img_byte = QPixmap2QByteArray()(pix.toImage())
             # pix.save('test.jpg')
             # self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_path='test.jpg',is_precision=self.is_precision)
-            self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_byte=img_byte,is_precision=self.is_precision)
+            self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_byte=img_byte,
+                                       is_precision=self.is_precision)
             self.content_single.emit()
 
         self.close()
@@ -255,14 +258,17 @@ class UpdateConfig(QWidget):
         super().__init__()
         self.oksignal_update_config = oksignal_update_config
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.config_path = self.resource_path("config.ini")
         self.config = configparser.ConfigParser()
+        self.config_path = self.resource_path("config\config.ini")
         self.config.read(self.config_path)
+        # config_path = pkgutil.get_data('config', 'config.ini')
+        # help_utf = config_path.decode('UTF-8', 'ignore')
+        # self.config.read_string(help_utf)
         baidu = self.config["baidu"]
         self.APP_ID = baidu["APP_ID"]
         self.API_KEY = baidu["API_KEY"]
         self.SECRET_KEY = baidu["SECRET_KEY"]
-        image_path = self.resource_path("one3.ico")
+        image_path = self.resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
         self.initUI()
 
