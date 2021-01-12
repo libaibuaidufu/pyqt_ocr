@@ -19,7 +19,10 @@ python main.py
 ### pyinstaller 打包命令
 
 ```bash
+windows（已测试）：
 pyinstaller -F -w main.py -i one3.ico --add-data config.ini;. --add-data one3.ico;.
+linux（未测试）:
+pyinstaller -F -w main.py -i one3.ico --add-data config.ini:. --add-data one3.ico:.
 ```
 
 ###### 2020-1-12 更新
