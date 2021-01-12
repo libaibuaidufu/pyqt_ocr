@@ -33,6 +33,7 @@ pyinstaller -D -w main.py -i image/logo.ico --add-data config/config.ini;config 
 2. 同时修改 鼠标样式 更加显著的 截图标识
 3. ~~发现问题 应用 必须要自己打包使用，因为配置保存只能此次打开有用。~~
 4. ~~3的问题有缘再解决了~~
+5. 增加Fusion样式
 
 
 
