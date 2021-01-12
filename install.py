@@ -6,3 +6,5 @@
 @author  : dfkai
 @Software: PyCharm
 """
+
+# I want to add install page
