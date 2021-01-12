@@ -13,18 +13,18 @@
 git clone https://github.com/libaibuaidufu/pyqt_orc.git
 cd pyqt_orc
 pip install -r requirements.txt
-python main.py
+python pyqt_orc.py
 ```
 
 ### pyinstaller 打包命令
 
 ```bash
 windows（已测试-单文件无法保存配置）：
-pyinstaller -F -w main.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
+pyinstaller -F -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
 linux（未测试）:
-pyinstaller -F -w main.py -i image/logo.ico --add-data config/config.ini:config --add-data image/logo.ico:image
+pyinstaller -F -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini:config --add-data image/logo.ico:image
 windows（已测试-文件夹可以保存配置-类似于安装版）：
-pyinstaller -D -w main.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
+pyinstaller -D -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
 ```
 
 ###### 2020-1-12 更新
