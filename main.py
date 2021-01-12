@@ -3,12 +3,30 @@ import os
 import sys
 
 import keyboard
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor
+from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
+from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QImage,QCursor
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout
 
 from orc import get_content
+
+
+class QPixmap2QByteArray(object):
+    def __call__(self, q_image) :
+        """
+            Args:
+                 q_image: 待转化为字节流的QImage。
+            Returns:
+                 q_image转化成的byte array。
+        """
+        # 获取一个空的字节数组
+        byte_array = QByteArray()
+        # 将字节数组绑定到输出流上
+        buffer = QBuffer(byte_array)
+        buffer.open(QIODevice.WriteOnly)
+        # 将数据使用png格式进行保存
+        q_image.save(buffer, "png", quality=100)
+        return byte_array
 
 
 class MyWin(QWidget):
@@ -130,6 +148,7 @@ class MyWin(QWidget):
         value = self.textEdit.toPlainText()
         self.clipboard.setText(value)
 
+
 class ScreenShotsWin(QWidget):
     # 定义一个信号
     oksignal = pyqtSignal()
@@ -145,6 +164,7 @@ class ScreenShotsWin(QWidget):
         self.APP_ID = APP_ID
         self.API_KEY = API_KEY
         self.SECRET_KEY = SECRET_KEY
+        self.setCursor(QCursor(Qt.CrossCursor))
 
     def initUI(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -170,13 +190,11 @@ class ScreenShotsWin(QWidget):
         if screen:
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
-            pix.save("test.jpg")
-            self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, "test.jpg", self.is_precision)
-            os.remove("test.jpg")
+            img_byte = QPixmap2QByteArray()(pix.toImage())
+            # pix.save('test.jpg')
+            # self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_path='test.jpg',is_precision=self.is_precision)
+            self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_byte=img_byte,is_precision=self.is_precision)
             self.content_single.emit()
-            # fileName = QFileDialog.getSaveFileName(self, '保存图片', '.', ".png;;.jpg")
-            # if fileName[0]:
-            #     pix.save(fileName[0] + fileName[1])
 
         self.close()
 

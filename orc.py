@@ -4,14 +4,13 @@
 # @File    : orc.py
 # @author  : dfkai
 # @Software: PyCharm
-import configparser
 import re
 
 from aip import AipOcr
 
 
 # def get_content(img_path, is_precision=False):
-def get_content(APP_ID,API_KEY,SECRET_KEY,img_path, is_precision=False):
+def get_content(APP_ID, API_KEY, SECRET_KEY, img_path=None, img_byte=None, is_precision=False):
     """ 你的 APPID AK SK """
     client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
 
@@ -21,8 +20,10 @@ def get_content(APP_ID,API_KEY,SECRET_KEY,img_path, is_precision=False):
         with open(filePath, 'rb') as fp:
             return fp.read()
 
-    image = get_file_content(img_path)
-
+    if not img_byte:
+        image = get_file_content(img_path)
+    else:
+        image = img_byte
     """ 调用通用文字识别, 图片参数为本地图片 """
     if is_precision:
         rsp = client.basicAccurate(image)
@@ -70,5 +71,3 @@ def get_content(APP_ID,API_KEY,SECRET_KEY,img_path, is_precision=False):
         last_num = word_num
     # print(content)
     return content.strip()
-
-
