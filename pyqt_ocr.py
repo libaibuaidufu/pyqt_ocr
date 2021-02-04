@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout
 
-from orc import get_content
+from ocr import get_content
 
 
 class QPixmap2QByteArray(object):
@@ -54,7 +54,6 @@ class MyWin(QWidget):
         self.setWindowTitle("截图")
         self.resize(400, 300)
         image_path = self.resource_path("image\logo.ico")
-        # self.setWindowIcon(QIcon("image\logo.ico"))
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
@@ -113,7 +112,7 @@ class MyWin(QWidget):
 
     def read_config(self):
         self.config = configparser.ConfigParser()
-        config_path = self.resource_path("config\config.ini")
+        config_path = 'config.ini'
         self.config.read(config_path)
         # config_path = pkgutil.get_data('config', 'config.ini')
         # help_utf = config_path.decode('UTF-8', 'ignore')
@@ -259,7 +258,7 @@ class UpdateConfig(QWidget):
         self.oksignal_update_config = oksignal_update_config
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.config = configparser.ConfigParser()
-        self.config_path = self.resource_path("config\config.ini")
+        self.config_path = 'config.ini'
         self.config.read(self.config_path)
         # config_path = pkgutil.get_data('config', 'config.ini')
         # help_utf = config_path.decode('UTF-8', 'ignore')

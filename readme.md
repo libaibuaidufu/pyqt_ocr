@@ -19,13 +19,17 @@ python pyqt_orc.py
 ### pyinstaller 打包命令
 
 ```bash
-windows（已测试-单文件无法保存配置）：
-pyinstaller -F -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
-linux（未测试）:
-pyinstaller -F -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini:config --add-data image/logo.ico:image
-windows（已测试-文件夹可以保存配置-类似于安装版）：
-pyinstaller -D -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini;config --add-data image/logo.ico;image
+# windows（已测试-文件夹可以保存配置-类似于安装版）：
+pyinstaller -D -w pyqt_ocr.py -i image/logo.ico --add-data config.ini;. --add-data image/logo.ico;image
+
+# windows 打包 单文件 只需要 把 config.ini 复制进去就ok
+pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
+
 ```
+
+###### 2021-2-4 更新
+1. 支持单文件打包 需要自己复制config.ini 到已打包配置里面，单文件真的大
+2. 自动切换壁纸 tkinter程序中学习而来的, [auto-change-wallhaven](https://github.com/libaibuaidufu/auto-change-wallhaven)
 
 ###### 2020-1-12 更新
 
@@ -39,7 +43,7 @@ pyinstaller -D -w pyqt_orc.py -i image/logo.ico --add-data config/config.ini;con
 
 ### 问题
 
-图片会保存本地 再删除 耽误时间 可以更好的直接传送字节过去 省去这一步
+~~图片会保存本地 再删除 耽误时间 可以更好的直接传送字节过去 省去这一步~~
 
 ### 预览
 ![image](https://github.com/libaibuaidufu/pyqt_orc/blob/master/preview.png)
