@@ -4,41 +4,48 @@
 # @File    : ocr.py
 # @author  : dfkai
 # @Software: PyCharm
+import base64
+import json
 import re
 
-from aip import AipOcr
+import requests
 
 
-# def get_content(img_path, is_precision=False):
-def get_content(APP_ID, API_KEY, SECRET_KEY, img_path=None, img_byte=None, is_precision=False):
-    """ 你的 APPID AK SK """
-    client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
+def get_file_content(filePath):
+    with open(filePath, 'rb') as fp:
+        file_rb = fp.read()
+    return base64.b64encode(file_rb).decode('utf8')
+
+
+def get_content(ocr_url=None, img_path=None, img_byte=None, is_precision=False):
+    if not ocr_url:
+        return "请设置OCR-APi"
 
     """ 读取图片 """
-
-    def get_file_content(filePath):
-        with open(filePath, 'rb') as fp:
-            return fp.read()
+    # 指定post请求的headers为application/json方式
+    headers = {"Content-Type": "application/json"}
 
     if not img_byte:
         image = get_file_content(img_path)
     else:
-        image = img_byte
-    """ 调用通用文字识别, 图片参数为本地图片 """
-    if is_precision:
-        rsp = client.basicAccurate(image)
-    else:
-        rsp = client.basicGeneral(image)
-    if "error_code" in rsp:
-        return "百度配置出错 或者 未扫描到内容"
-    # {'error_code': 14, 'error_msg': 'IAM Certification failed'}
-    # print(rsp["words_result"])
+        image = base64.b64encode(img_byte).decode('utf8')
+    data = {
+        "images": [image]
+    }
+    try:
+        resp = requests.post(url=ocr_url, headers=headers, data=json.dumps(data), proxies={"http": "", "https": ''})
+    except Exception:
+        return "请求失败，请查看地址和网络问题"
+    resp_json = resp.json()
+    if resp_json.get("status", '') != "0":
+        return f"未扫描到内容或者扫描出错,提示：{resp_json.get('msg', '')}"
+
     content = ""
     last_num = 0
     is_end = False
     last_end = False
-    for word_dict in rsp.get("words_result"):
-        word = word_dict["words"]
+    for word_dict in resp_json.get("results")[0]:
+        word = word_dict["text"]
         word_num = len(word)
         if last_end:
             is_end = True

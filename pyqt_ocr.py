@@ -36,8 +36,8 @@ class MyWin(QWidget):
     def __init__(self):
         super(MyWin, self).__init__()
         self.is_add = False
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.read_config()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
         self.initUi()
 
@@ -57,8 +57,7 @@ class MyWin(QWidget):
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
-        self.btn = QPushButton('普通识别', self, clicked=self.click_btn)
-        self.btn2 = QPushButton('精度识别', self, clicked=self.click_btn2)
+        self.btn = QPushButton('飞桨识别', self, clicked=self.click_btn)
         self.btn3 = QPushButton('追加文本', self, clicked=self.click_btn3)
         self.btn_copy = QPushButton('复制文本', self, clicked=self.click_btn_copy)
         self.btn4 = QPushButton('修改配置', self, clicked=self.click_btn4)
@@ -66,7 +65,6 @@ class MyWin(QWidget):
         # self.btn.clicked.connect(self.click_btn)
         # self.btn.setShortcut('F4')  # 设置快捷键
         hbox.addWidget(self.btn)
-        hbox.addWidget(self.btn2)
         hbox.addWidget(self.btn3)
         hbox.addWidget(self.btn_copy)
         hbox.addWidget(self.btn4)
@@ -109,29 +107,24 @@ class MyWin(QWidget):
         self.textEdit.setText(data)
         self.screenshot.close()
         self.showNormal()
+        self.click_btn_copy()
 
     def read_config(self):
-        self.config = configparser.ConfigParser()
-        config_path = 'config.ini'
-        self.config.read(config_path)
-        # config_path = pkgutil.get_data('config', 'config.ini')
-        # help_utf = config_path.decode('UTF-8', 'ignore')
-        # self.config.read_string(help_utf)
-        baidu = self.config["baidu"]
-        self.APP_ID = baidu["APP_ID"]
-        self.API_KEY = baidu["API_KEY"]
-        self.SECRET_KEY = baidu["SECRET_KEY"]
+        if os.path.isfile("config.ini"):
+            self.config = configparser.ConfigParser()
+            config_path = 'config.ini'
+            self.config.read(config_path)
+            paddleocr = self.config["paddleocr"]
+            self.OCR_API = paddleocr["OCR_API"]
+        else:
+            with open("config.ini", 'w', encoding='utf8') as f:
+                f.write('[paddleocr]\n')
+                f.write('ocr_api = http://127.0.0.1:8866/predict/ocr_system')
+            self.OCR_API = ""
 
     def click_btn(self):
         self.showMinimized()
-        self.screenshot = ScreenShotsWin(self.APP_ID, self.API_KEY, self.SECRET_KEY, self.oksignal_content)
-        # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.screenshot.showFullScreen()
-
-    def click_btn2(self):
-        self.showMinimized()
-        self.screenshot = ScreenShotsWin(self.APP_ID, self.API_KEY, self.SECRET_KEY, self.oksignal_content,
-                                         is_precision=True)
+        self.screenshot = ScreenShotsWin(self.oksignal_content, URL_API=self.OCR_API)
         # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.screenshot.showFullScreen()
 
@@ -154,7 +147,7 @@ class ScreenShotsWin(QWidget):
     # 定义一个信号
     oksignal = pyqtSignal()
 
-    def __init__(self, APP_ID, API_KEY, SECRET_KEY, content_single, is_precision=False):
+    def __init__(self, content_single, URL_API=None, is_precision=False):
         super(ScreenShotsWin, self).__init__()
         self.initUI()
         self.start = (0, 0)  # 开始坐标点
@@ -162,9 +155,7 @@ class ScreenShotsWin(QWidget):
         self.content_single = content_single
         self.content = None
         self.is_precision = is_precision
-        self.APP_ID = APP_ID
-        self.API_KEY = API_KEY
-        self.SECRET_KEY = SECRET_KEY
+        self.URL_API = URL_API
         self.setCursor(QCursor(Qt.CrossCursor))
 
     def initUI(self):
@@ -192,9 +183,7 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            # pix.save('test.jpg')
-            # self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_path='test.jpg',is_precision=self.is_precision)
-            self.content = get_content(self.APP_ID, self.API_KEY, self.SECRET_KEY, img_byte=img_byte,
+            self.content = get_content(ocr_url=self.URL_API, img_byte=img_byte,
                                        is_precision=self.is_precision)
             self.content_single.emit()
 
@@ -260,13 +249,8 @@ class UpdateConfig(QWidget):
         self.config = configparser.ConfigParser()
         self.config_path = 'config.ini'
         self.config.read(self.config_path)
-        # config_path = pkgutil.get_data('config', 'config.ini')
-        # help_utf = config_path.decode('UTF-8', 'ignore')
-        # self.config.read_string(help_utf)
-        baidu = self.config["baidu"]
-        self.APP_ID = baidu["APP_ID"]
-        self.API_KEY = baidu["API_KEY"]
-        self.SECRET_KEY = baidu["SECRET_KEY"]
+        paddleocr = self.config["paddleocr"]
+        self.OCR_API = paddleocr["OCR_API"]
         image_path = self.resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
         self.initUI()
@@ -277,74 +261,54 @@ class UpdateConfig(QWidget):
         return os.path.join(base_path, relative_path)
 
     def initUI(self):
-        title = QLabel('APP_ID')
-        author = QLabel('API_KEY')
-        review = QLabel('SECRET_KEY')
-        register_net = QLabel('注册网址')
+        ocr_api = QLabel('配置接口：')
+        author = QLabel('作者：')
+        github_url = QLabel('github：')
+        paddleocr_github_url = QLabel('paddleocr:')
 
-        self.app_id_Edit = QLineEdit()
-        self.api_key_Edit = QLineEdit()
-        self.secret_key_Edit = QLineEdit()
-        self.secret_key_Edit2 = QLineEdit()
-        self.app_id_Edit.setText(self.APP_ID)
-        self.api_key_Edit.setText(self.API_KEY)
-        self.secret_key_Edit.setText(self.SECRET_KEY)
-        self.secret_key_Edit2.setText("https://cloud.baidu.com/product/ocr/general")
+        self.ocr_api_Edit = QLineEdit()
+        self.author_Edit = QLineEdit()
+        self.github_url_Edit = QLineEdit()
+        self.paddleocr_github_url_Edit2 = QLineEdit()
+        self.ocr_api_Edit.setText(self.OCR_API)
+        self.author_Edit.setText("libaibuaidufu")
+        self.github_url_Edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
+        self.paddleocr_github_url_Edit2.setText("https://github.com/PaddlePaddle/PaddleOCR")
         # self.secret_key_Edit2.setDisabled(True)
         grid = QGridLayout()
         grid.setSpacing(10)
 
-        grid.addWidget(title, 1, 0)
-        grid.addWidget(self.app_id_Edit, 1, 1)
+        grid.addWidget(ocr_api, 1, 0)
+        grid.addWidget(self.ocr_api_Edit, 1, 1)
 
         grid.addWidget(author, 2, 0)
-        grid.addWidget(self.api_key_Edit, 2, 1)
+        grid.addWidget(self.author_Edit, 2, 1)
 
-        grid.addWidget(review, 3, 0)
-        grid.addWidget(self.secret_key_Edit, 3, 1)
+        grid.addWidget(github_url, 3, 0)
+        grid.addWidget(self.github_url_Edit, 3, 1)
 
-        grid.addWidget(register_net, 4, 0)
-        grid.addWidget(self.secret_key_Edit2, 4, 1)
+        grid.addWidget(paddleocr_github_url, 4, 0)
+        grid.addWidget(self.paddleocr_github_url_Edit2, 4, 1)
 
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
         self.btn = QPushButton('保存', self, clicked=self.save_config)
-        self.btn2 = QPushButton('恢复默认', self, clicked=self.update_default_config)
         vbox.addLayout(grid)
         hbox.addWidget(self.btn)
-        hbox.addWidget(self.btn2)
         hbox.addStretch(1)
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
         self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('修改百度api配置')
+        self.setWindowTitle('修改OCR-API配置')
 
     def save_config(self):
-        APP_ID = self.app_id_Edit.text()
-        API_KEY = self.api_key_Edit.text()
-        SECRET_KEY = self.secret_key_Edit.text()
-        self.config.set("baidu", "APP_ID", APP_ID)  # set to modify
-        self.config.set("baidu", "API_KEY", API_KEY)  # set to modify
-        self.config.set("baidu", "SECRET_KEY", SECRET_KEY)  # set to modify
+        OCR_API = self.ocr_api_Edit.text()
+        self.config.set("paddleocr", "OCR_API", OCR_API)  # set to modify
         with open(self.config_path, "w+") as f:
             self.config.write(f)
         self.oksignal_update_config.emit()
         self.close()
-
-    def update_default_config(self):
-        default = self.config["default"]
-        default_APP_ID = default["APP_ID"]
-        default_API_KEY = default["API_KEY"]
-        default_SECRET_KEY = default["SECRET_KEY"]
-        self.config.set("baidu", "APP_ID", default_APP_ID)  # set to modify
-        self.config.set("baidu", "API_KEY", default_API_KEY)  # set to modify
-        self.config.set("baidu", "SECRET_KEY", default_SECRET_KEY)  # set to modify
-        with open(self.config_path, "w+") as f:
-            self.config.write(f)
-        self.app_id_Edit.setText(default_APP_ID)
-        self.api_key_Edit.setText(default_API_KEY)
-        self.secret_key_Edit.setText(default_SECRET_KEY)
 
 
 if __name__ == '__main__':
