@@ -4,9 +4,9 @@ import sys
 
 import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
-from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor
+from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
-    QHBoxLayout, QLabel, QLineEdit, QGridLayout
+    QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog
 
 from ocr import get_content
 
@@ -36,12 +36,19 @@ class MyWin(QWidget):
     def __init__(self):
         super(MyWin, self).__init__()
         self.is_add = False
-        self.read_config()
+        self.config_path = 'config.ini'
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
-        self.initUi()
 
+        self.initUi()
+        self.read_config()
+        self.set_font()
         # https://stackoverflow.com/questions/56949297/how-to-fix-importerror-unable-to-find-qt5core-dll-on-path-after-pyinstaller-b
+
+    def set_font(self, font=None):
+        if not font:
+            font = QFont(self.FONT, int(self.FONT_SIZE))
+        self.textEdit.setFont(font)
 
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -50,7 +57,7 @@ class MyWin(QWidget):
 
     def initUi(self):
         # 窗口大小设置为600*500
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowTitle("截图")
         self.resize(400, 300)
         image_path = self.resource_path("image\logo.ico")
@@ -61,12 +68,15 @@ class MyWin(QWidget):
         self.btn3 = QPushButton('追加文本', self, clicked=self.click_btn3)
         self.btn_copy = QPushButton('复制文本', self, clicked=self.click_btn_copy)
         self.btn4 = QPushButton('修改配置', self, clicked=self.click_btn4)
+        self.btn5 = QPushButton('字体修改', self, clicked=self.click_btn5)
+
         self.btn3.setCheckable(True)
         # self.btn.clicked.connect(self.click_btn)
         # self.btn.setShortcut('F4')  # 设置快捷键
         hbox.addWidget(self.btn)
         hbox.addWidget(self.btn3)
         hbox.addWidget(self.btn_copy)
+        hbox.addWidget(self.btn5)
         hbox.addWidget(self.btn4)
         hbox.addStretch(1)
 
@@ -110,17 +120,22 @@ class MyWin(QWidget):
         self.click_btn_copy()
 
     def read_config(self):
-        if os.path.isfile("config.ini"):
+        if os.path.isfile(self.config_path):
             self.config = configparser.ConfigParser()
-            config_path = 'config.ini'
-            self.config.read(config_path)
+            self.config.read(self.config_path, encoding='utf8')
             paddleocr = self.config["paddleocr"]
             self.OCR_API = paddleocr["OCR_API"]
+            self.FONT = paddleocr['FONT']
+            self.FONT_SIZE = paddleocr["FONT_SIZE"]
         else:
             with open("config.ini", 'w', encoding='utf8') as f:
                 f.write('[paddleocr]\n')
-                f.write('ocr_api = http://127.0.0.1:8866/predict/ocr_system')
-            self.OCR_API = ""
+                f.write('OCR_API = http://127.0.0.1:8866/predict/ocr_system\n')
+                f.write('FONT = Arial\n')
+                f.write('FONT_SIZE = 12')
+            self.OCR_API = 'http://127.0.0.1:8866/predict/ocr_system'
+            self.FONT = "Arial"
+            self.FONT_SIZE = "12"
 
     def click_btn(self):
         self.showMinimized()
@@ -137,6 +152,17 @@ class MyWin(QWidget):
     def click_btn4(self):
         self.update_config = UpdateConfig(self.oksignal_update_config)
         self.update_config.show()
+
+    def click_btn5(self):
+        font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
+        if isok:
+            self.FONT = str(font.family())
+            self.FONT_SIZE = str(font.pointSize())
+            self.config.set("paddleocr", "FONT", self.FONT)
+            self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
+            with open(self.config_path, "w+", encoding='utf8') as f:
+                self.config.write(f)
+            self.set_font(font)
 
     def click_btn_copy(self):
         value = self.textEdit.toPlainText()
@@ -248,7 +274,7 @@ class UpdateConfig(QWidget):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.config = configparser.ConfigParser()
         self.config_path = 'config.ini'
-        self.config.read(self.config_path)
+        self.config.read(self.config_path, encoding='utf8')
         paddleocr = self.config["paddleocr"]
         self.OCR_API = paddleocr["OCR_API"]
         image_path = self.resource_path("image\logo.ico")
@@ -294,8 +320,8 @@ class UpdateConfig(QWidget):
         hbox = QHBoxLayout()
         self.btn = QPushButton('保存', self, clicked=self.save_config)
         vbox.addLayout(grid)
-        hbox.addWidget(self.btn)
         hbox.addStretch(1)
+        hbox.addWidget(self.btn)
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
@@ -305,7 +331,7 @@ class UpdateConfig(QWidget):
     def save_config(self):
         OCR_API = self.ocr_api_Edit.text()
         self.config.set("paddleocr", "OCR_API", OCR_API)  # set to modify
-        with open(self.config_path, "w+") as f:
+        with open(self.config_path, "w+", encoding='utf8') as f:
             self.config.write(f)
         self.oksignal_update_config.emit()
         self.close()
