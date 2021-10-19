@@ -48,4 +48,4 @@ pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 
 ### 预览
 
-![image](https://github.com/libaibuaidufu/pyqt_orc/blob/master/preview.png)
+![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr/preview.png)
