@@ -29,22 +29,16 @@ def get_content(ocr_url=None, img_path=None, img_byte=None, is_precision=False):
         image = get_file_content(img_path)
     else:
         image = base64.b64encode(img_byte).decode('utf8')
-    data = {
-        "images": [image]
-    }
-    try:
-        resp = requests.post(url=ocr_url, headers=headers, data=json.dumps(data), proxies={"http": "", "https": ''})
-    except Exception:
-        return "请求失败，请查看地址和网络问题"
-    resp_json = resp.json()
-    if resp_json.get("status", '') != "0":
-        return f"未扫描到内容或者扫描出错,提示：{resp_json.get('msg', '')}"
+    if ocr_url == 'https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/chinese_ocr_db_crnn_mobile':
+        resp_json = baipiao_url(image, ocr_url, headers)
+    else:
+        resp_json = custom_url(image, ocr_url, headers)
 
     content = ""
     last_num = 0
     is_end = False
     last_end = False
-    for word_dict in resp_json.get("results")[0]:
+    for word_dict in resp_json:
         word = word_dict["text"]
         word_num = len(word)
         if last_end:
@@ -78,3 +72,36 @@ def get_content(ocr_url=None, img_path=None, img_byte=None, is_precision=False):
         last_num = word_num
     # print(content)
     return content.strip()
+
+
+def baipiao_url(image, ocr_url, headers):
+    data = {
+        "image": image
+    }
+    try:
+        resp = requests.post(url=ocr_url, headers=headers, data=json.dumps(data), proxies={"http": "", "https": ''})
+    except Exception:
+        return "请求失败，请查看地址和网络问题"
+    resp_json = resp.json()
+    print(resp_json)
+    if resp_json.get("result")[0].get("data", []) == []:
+        return f"未扫描到内容或者扫描出错"
+    data_dict = resp_json.get("result")[0].get("data")
+    return data_dict
+
+
+def custom_url(image, ocr_url, headers):
+    data = {
+        "images": [image]
+    }
+    try:
+        resp = requests.post(url=ocr_url, headers=headers, data=json.dumps(data), proxies={"http": "", "https": ''})
+    except Exception:
+        return "请求失败，请查看地址和网络问题"
+    resp_json = resp.json()
+    print(resp_json)
+    if resp_json.get("status", '') != "0":
+        return f"未扫描到内容或者扫描出错,提示：{resp_json.get('msg', '')}"
+    data_dict = resp_json.get("results")[0]
+
+    return data_dict

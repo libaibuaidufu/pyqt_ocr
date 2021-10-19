@@ -130,10 +130,10 @@ class MyWin(QWidget):
         else:
             with open("config.ini", 'w', encoding='utf8') as f:
                 f.write('[paddleocr]\n')
-                f.write('OCR_API = http://127.0.0.1:8866/predict/ocr_system\n')
+                f.write('OCR_API = https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/chinese_ocr_db_crnn_mobile\n')
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12')
-            self.OCR_API = 'http://127.0.0.1:8866/predict/ocr_system'
+            self.OCR_API = 'https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/chinese_ocr_db_crnn_mobile'
             self.FONT = "Arial"
             self.FONT_SIZE = "12"
 
