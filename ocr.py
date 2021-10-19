@@ -32,7 +32,8 @@ def get_content(ocr_url=None, img_path=None, img_byte=None, is_precision=False):
         resp_json = baipiao_url(image, ocr_url, headers)
     else:
         resp_json = custom_url(image, ocr_url, headers)
-
+    if isinstance(resp_json, str):
+        return resp_json
     content = ""
     last_num = 0
     is_end = False
@@ -69,7 +70,6 @@ def get_content(ocr_url=None, img_path=None, img_byte=None, is_precision=False):
             last_end = False
 
         last_num = word_num
-    # print(content)
     return content.strip()
 
 
@@ -82,7 +82,6 @@ def baipiao_url(image, ocr_url, headers):
     except Exception:
         return "请求失败，请查看地址和网络问题"
     resp_json = resp.json()
-    print(resp_json)
     if resp_json.get("result")[0].get("data", []) == []:
         return f"未扫描到内容或者扫描出错"
     data_dict = resp_json.get("result")[0].get("data")
@@ -98,9 +97,7 @@ def custom_url(image, ocr_url, headers):
     except Exception:
         return "请求失败，请查看地址和网络问题"
     resp_json = resp.json()
-    print(resp_json)
     if resp_json.get("status", '') != "0":
         return f"未扫描到内容或者扫描出错,提示：{resp_json.get('msg', '')}"
     data_dict = resp_json.get("results")[0]
-
     return data_dict
