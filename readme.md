@@ -1,5 +1,7 @@
 # pyqt_orc
 
+>分支baiduocr支持百度ocr，但是目前百度个人免费额度太少，还需要自己去领取，则切换paddleocr为主分支。
+
 ### python3+ 运行
 
 ```bash
@@ -21,7 +23,6 @@ pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 ```
 ###### 2021-10-19 更新
 1. 增加 飞桨在线测试接口使用（同时默认使用在线测试接口）
-2. 分支baiduocr支持百度ocr，但是目前百度个人免费额度太少，还需要自己去领取，则切换飞桨为主分支。
 ###### 2021-07-29 更新
 1. 增加 字体样式和大小 修改
 ###### 2021-07-28 更新
