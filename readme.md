@@ -46,4 +46,4 @@ pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 ~~图片会保存本地 再删除 耽误时间 可以更好的直接传送字节过去 省去这一步~~
 
 ### 预览
-![image](https://github.com/libaibuaidufu/pyqt_orc/blob/master/preview.png)
+![image](https://github.com/libaibuaidufu/pyqt_orc/blob/baiduocr/preview.png)
