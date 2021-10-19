@@ -27,6 +27,8 @@ pyinstaller -D -w pyqt_ocr.py -i image/logo.ico --add-data config.ini;. --add-da
 pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 
 ```
+###### 2021-10-19 更新
+1. 增加 飞桨在线测试接口使用（同时默认使用在线测试接口）
 ###### 2021-07-29 更新
 1. 增加 字体样式和大小 修改
 ###### 2021-07-28 更新
