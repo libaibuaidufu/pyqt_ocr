@@ -1,26 +1,9 @@
-# pyqt_orc
+# pyqt_orc 离线版
 
->分支baiduocr支持百度ocr，但是目前百度个人免费额度太少，还需要自己去领取，则切换paddleocr为主分支。
+### 离线版环境及pyinstaller打包
 
-### python3+ 运行
+文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
 
-```bash
-git clone https://github.com/libaibuaidufu/pyqt_orc.git
-cd pyqt_orc
-pip install -r requirements.txt
-python pyqt_orc.py
-```
-
-### pyinstaller 打包命令
-
-```bash
-# windows（已测试-文件夹可以保存配置-类似于安装版）：
-pyinstaller -D -w pyqt_ocr.py -i image/logo.ico --add-data config.ini;. --add-data image/logo.ico;image
-
-# windows 打包 单文件 只需要 把 config.ini 复制进去就ok
-pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
-
-```
 ###### 2021-10-22 更新
 1. 增加 飞桨离线服务整合版（包很大 200M）[paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
 2. 离线版扫描纯文档效果还行，其他的还是有很多问题。等着后续优化。
