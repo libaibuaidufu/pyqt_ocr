@@ -24,7 +24,7 @@ pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 
 ```
 ###### 2021-10-22 更新
-1. 增加 飞桨离线版 [paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
+1. 增加 飞桨离线版(后续更新也在分支上更新) [paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
 
 ###### 2021-10-19 更新
 1. 增加 飞桨在线测试接口使用（同时默认使用在线测试接口）
