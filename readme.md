@@ -1,6 +1,8 @@
 # pyqt_orc
 
->分支baiduocr支持百度ocr，但是目前百度个人免费额度太少，还需要自己去领取，则切换paddleocr为主分支。
+>1.分支baiduocr支持百度ocr，但是目前百度个人免费额度太少，还需要自己去领取，则切换paddleocr为主分支。
+> 
+>2.飞桨离线服务整合版（包很大 200M）[paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
 
 ### python3+ 运行
 
@@ -21,6 +23,9 @@ pyinstaller -D -w pyqt_ocr.py -i image/logo.ico --add-data config.ini;. --add-da
 pyinstaller -F -w pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image
 
 ```
+###### 2021-10-22 更新
+1. 增加 飞桨离线版 [paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
+
 ###### 2021-10-19 更新
 1. 增加 飞桨在线测试接口使用（同时默认使用在线测试接口）
 ###### 2021-07-29 更新
