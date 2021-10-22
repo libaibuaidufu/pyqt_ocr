@@ -181,7 +181,7 @@ ModuleNotFoundError: No module named ‘skimage.feature._orb_descriptor_position
 
 `pip install -U scikit-image==0.15.0`
 
-* 7 pyinstaller可执行文件报错astor
+* 4 pyinstaller可执行文件报错astor
 
 降低版本 0.7.1
 `pip install astor==0.7.1`
