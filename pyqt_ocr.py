@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTe
     QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog
 
 from ocr import get_content
-
+from ocr_paddle import get_content as get_content_pa
 
 class QPixmap2QByteArray(object):
     def __call__(self, q_image):
@@ -209,8 +209,8 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(ocr_url=self.URL_API, img_byte=img_byte,
-                                       is_precision=self.is_precision)
+            # self.content = get_content(ocr_url=self.URL_API, img_byte=img_byte,is_precision=self.is_precision)
+            self.content = get_content_pa(img_byte)
             self.content_single.emit()
 
         self.close()
