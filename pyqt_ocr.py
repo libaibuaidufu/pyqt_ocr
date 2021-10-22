@@ -1,6 +1,7 @@
 import configparser
 import os
 import sys
+import traceback
 
 import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
@@ -8,8 +9,8 @@ from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog
 
-from ocr import get_content
-from ocr_paddle import get_content as get_content_pa
+from ocr_paddle import get_content
+
 
 class QPixmap2QByteArray(object):
     def __call__(self, q_image):
@@ -40,9 +41,10 @@ class MyWin(QWidget):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
 
-        self.initUi()
         self.read_config()
+        self.initUi()
         self.set_font()
+
         # https://stackoverflow.com/questions/56949297/how-to-fix-importerror-unable-to-find-qt5core-dll-on-path-after-pyinstaller-b
 
     def set_font(self, font=None):
@@ -124,22 +126,22 @@ class MyWin(QWidget):
             self.config = configparser.ConfigParser()
             self.config.read(self.config_path, encoding='utf8')
             paddleocr = self.config["paddleocr"]
-            self.OCR_API = paddleocr["OCR_API"]
             self.FONT = paddleocr['FONT']
             self.FONT_SIZE = paddleocr["FONT_SIZE"]
         else:
             with open("config.ini", 'w', encoding='utf8') as f:
                 f.write('[paddleocr]\n')
-                f.write('OCR_API = https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/chinese_ocr_db_crnn_mobile\n')
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12')
-            self.OCR_API = 'https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/chinese_ocr_db_crnn_mobile'
             self.FONT = "Arial"
             self.FONT_SIZE = "12"
+            self.config = configparser.ConfigParser()
+            self.config.read(self.config_path, encoding='utf8')
+            paddleocr = self.config["paddleocr"]
 
     def click_btn(self):
         self.showMinimized()
-        self.screenshot = ScreenShotsWin(self.oksignal_content, URL_API=self.OCR_API)
+        self.screenshot = ScreenShotsWin(self.oksignal_content)
         # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.screenshot.showFullScreen()
 
@@ -154,15 +156,18 @@ class MyWin(QWidget):
         self.update_config.show()
 
     def click_btn5(self):
-        font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
-        if isok:
-            self.FONT = str(font.family())
-            self.FONT_SIZE = str(font.pointSize())
-            self.config.set("paddleocr", "FONT", self.FONT)
-            self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
-            with open(self.config_path, "w+", encoding='utf8') as f:
-                self.config.write(f)
-            self.set_font(font)
+        try:
+            font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
+            if isok:
+                self.FONT = str(font.family())
+                self.FONT_SIZE = str(font.pointSize())
+                self.config.set("paddleocr", "FONT", self.FONT)
+                self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
+                with open(self.config_path, "w+", encoding='utf8') as f:
+                    self.config.write(f)
+                self.set_font(font)
+        except:
+            traceback.print_exc()
 
     def click_btn_copy(self):
         value = self.textEdit.toPlainText()
@@ -173,7 +178,7 @@ class ScreenShotsWin(QWidget):
     # 定义一个信号
     oksignal = pyqtSignal()
 
-    def __init__(self, content_single, URL_API=None, is_precision=False):
+    def __init__(self, content_single, is_precision=False):
         super(ScreenShotsWin, self).__init__()
         self.initUI()
         self.start = (0, 0)  # 开始坐标点
@@ -181,7 +186,6 @@ class ScreenShotsWin(QWidget):
         self.content_single = content_single
         self.content = None
         self.is_precision = is_precision
-        self.URL_API = URL_API
         self.setCursor(QCursor(Qt.CrossCursor))
 
     def initUI(self):
@@ -209,8 +213,7 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            # self.content = get_content(ocr_url=self.URL_API, img_byte=img_byte,is_precision=self.is_precision)
-            self.content = get_content_pa(img_byte)
+            self.content = get_content(img_byte)
             self.content_single.emit()
 
         self.close()
@@ -276,7 +279,6 @@ class UpdateConfig(QWidget):
         self.config_path = 'config.ini'
         self.config.read(self.config_path, encoding='utf8')
         paddleocr = self.config["paddleocr"]
-        self.OCR_API = paddleocr["OCR_API"]
         image_path = self.resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
         self.initUI()
@@ -287,25 +289,19 @@ class UpdateConfig(QWidget):
         return os.path.join(base_path, relative_path)
 
     def initUI(self):
-        ocr_api = QLabel('配置接口：')
         author = QLabel('作者：')
         github_url = QLabel('github：')
         paddleocr_github_url = QLabel('paddleocr:')
 
-        self.ocr_api_Edit = QLineEdit()
         self.author_Edit = QLineEdit()
         self.github_url_Edit = QLineEdit()
         self.paddleocr_github_url_Edit2 = QLineEdit()
-        self.ocr_api_Edit.setText(self.OCR_API)
         self.author_Edit.setText("libaibuaidufu")
         self.github_url_Edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
         self.paddleocr_github_url_Edit2.setText("https://github.com/PaddlePaddle/PaddleOCR")
         # self.secret_key_Edit2.setDisabled(True)
         grid = QGridLayout()
         grid.setSpacing(10)
-
-        grid.addWidget(ocr_api, 1, 0)
-        grid.addWidget(self.ocr_api_Edit, 1, 1)
 
         grid.addWidget(author, 2, 0)
         grid.addWidget(self.author_Edit, 2, 1)
@@ -329,8 +325,6 @@ class UpdateConfig(QWidget):
         self.setWindowTitle('修改OCR-API配置')
 
     def save_config(self):
-        OCR_API = self.ocr_api_Edit.text()
-        self.config.set("paddleocr", "OCR_API", OCR_API)  # set to modify
         with open(self.config_path, "w+", encoding='utf8') as f:
             self.config.write(f)
         self.oksignal_update_config.emit()
