@@ -28,6 +28,7 @@ pip install -r requirements.txt
 #### 调试
 
 ```bash
+# 此处设置为自己的虚拟环境位置
 SET PADDLEOCR_PATH=E:\Python\venv\paddleocr_venv_37\Lib\site-packages
 
 # 多文件 每次运行不需要解压 （启动快点）
@@ -40,7 +41,8 @@ pyinstaller --clean -y -F  --clean --exclude matplotlib  pyqt_ocr.py -i image/lo
 #### 正式
 
 ```bash
-SET PADDLEOCR_PATH=%PADDLEOCR_PATH%
+# 此处设置为自己的虚拟环境位置
+SET PADDLEOCR_PATH=E:\Python\venv\paddleocr_venv_37\Lib\site-packages
 
 # 多文件 每次运行不需要解压 （启动快点）
 pyinstaller --clean -y -D -w --clean --exclude matplotlib  pyqt_ocr.py -i image/logo.ico --add-data image/logo.ico;image --add-data %PADDLEOCR_PATH%\paddleocr\ppocr\utils\ppocr_keys_v1.txt;.\ppocr\utils --add-data %PADDLEOCR_PATH%\paddleocr\ppocr\utils\dict\table_structure_dict.txt;.\ppocr\utils\dict  -p %PADDLEOCR_PATH%\paddle\libs;%PADDLEOCR_PATH%\paddleocr;%PADDLEOCR_PATH%\paddleocr\ppocr\utils\e2e_utils; --add-binary %PADDLEOCR_PATH%\paddle\libs;.  --additional-hooks-dir=.   --hidden-import extract_textpoint_slow --hidden-import scipy.spatial.transform._rotation_groups --hidden-import scipy.special.cython_special --hidden-import sklearn.utils._cython_blas --hidden-import sklearn.utils._weight_vector
