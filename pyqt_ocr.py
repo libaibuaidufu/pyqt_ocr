@@ -1,15 +1,17 @@
 import configparser
 import os
+import pathlib
 import sys
-import traceback
 
 import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
-    QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog
+    QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog, QComboBox, QFileDialog
+from paddleocr.paddleocr import get_model_config, VERSION, BASE_DIR
+from paddleocr.ppocr.utils.network import confirm_model_dir_url
 
-from ocr_paddle import get_content
+from ocr_paddle import get_content, init_paddleocr
 
 
 class QPixmap2QByteArray(object):
@@ -40,7 +42,7 @@ class MyWin(QWidget):
         self.config_path = 'config.ini'
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
-
+        self.lang_dict = dict(中文='ch', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan')
         self.read_config()
         self.initUi()
         self.set_font()
@@ -121,27 +123,9 @@ class MyWin(QWidget):
         self.showNormal()
         self.click_btn_copy()
 
-    def read_config(self):
-        if os.path.isfile(self.config_path):
-            self.config = configparser.ConfigParser()
-            self.config.read(self.config_path, encoding='utf8')
-            paddleocr = self.config["paddleocr"]
-            self.FONT = paddleocr['FONT']
-            self.FONT_SIZE = paddleocr["FONT_SIZE"]
-        else:
-            with open("config.ini", 'w', encoding='utf8') as f:
-                f.write('[paddleocr]\n')
-                f.write('FONT = Arial\n')
-                f.write('FONT_SIZE = 12')
-            self.FONT = "Arial"
-            self.FONT_SIZE = "12"
-            self.config = configparser.ConfigParser()
-            self.config.read(self.config_path, encoding='utf8')
-            paddleocr = self.config["paddleocr"]
-
     def click_btn(self):
         self.showMinimized()
-        self.screenshot = ScreenShotsWin(self.oksignal_content)
+        self.screenshot = ScreenShotsWin(self.oksignal_content, self)
         # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.screenshot.showFullScreen()
 
@@ -152,33 +136,69 @@ class MyWin(QWidget):
             self.is_add = True
 
     def click_btn4(self):
-        self.update_config = UpdateConfig(self.oksignal_update_config)
+        self.update_config = UpdateConfig(self.oksignal_update_config, self)
         self.update_config.show()
 
     def click_btn5(self):
-        try:
-            font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
-            if isok:
-                self.FONT = str(font.family())
-                self.FONT_SIZE = str(font.pointSize())
-                self.config.set("paddleocr", "FONT", self.FONT)
-                self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
-                with open(self.config_path, "w+", encoding='utf8') as f:
-                    self.config.write(f)
-                self.set_font(font)
-        except:
-            traceback.print_exc()
+        font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
+        if isok:
+            self.FONT = str(font.family())
+            self.FONT_SIZE = str(font.pointSize())
+            self.config.set("paddleocr", "FONT", self.FONT)
+            self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
+            with open(self.config_path, "w+", encoding='utf8') as f:
+                self.config.write(f)
+            self.set_font(font)
 
     def click_btn_copy(self):
         value = self.textEdit.toPlainText()
         self.clipboard.setText(value)
+
+    def read_config(self):
+
+        if os.path.isfile(self.config_path):
+            self.config = configparser.ConfigParser()
+            self.config.read(self.config_path, encoding='utf8')
+            paddleocr = self.config["paddleocr"]
+            LANG = paddleocr['LANG']
+            CLS_PATH = paddleocr['CLS_PATH']
+            DET_PATH = paddleocr['DET_PATH']
+            REC_PATH = paddleocr['REC_PATH']
+            self.FONT = paddleocr['FONT']
+            self.FONT_SIZE = paddleocr["FONT_SIZE"]
+        else:
+            cls_model_config = get_model_config(VERSION, 'cls', 'ch')
+            det_model_config = get_model_config(VERSION, 'det', 'ch')
+            rec_model_config = get_model_config(VERSION, 'rec', 'ch')
+            ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
+            CLS_PATH, _ = confirm_model_dir_url(None, ocr_path / 'cls', cls_model_config['url'])
+            DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / 'ch', det_model_config['url'])
+            REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / 'ch', rec_model_config['url'])
+
+            with open("config.ini", 'w', encoding='utf8') as f:
+                f.write('[paddleocr]\n')
+                f.write('LANG = 中文\n')
+                f.write(f'CLS_PATH = {CLS_PATH}\n')
+                f.write(f'DET_PATH = {DET_PATH}\n')
+                f.write(f'REC_PATH = {REC_PATH}\n')
+                f.write('FONT = Arial\n')
+                f.write('FONT_SIZE = 12')
+            LANG = "中文"
+            self.FONT = "Arial"
+            self.FONT_SIZE = "12"
+            self.config = configparser.ConfigParser()
+            self.config.read(self.config_path, encoding='utf8')
+        lang_dict = dict(中文='ch', 英文='en', 法文='fr', 德文='german', 韩文='korean', 日文='japan')
+
+        self.ocr = init_paddleocr(lang=lang_dict.get(LANG, 'ch'), cls_model_dir=CLS_PATH, det_model_dir=DET_PATH,
+                                  rec_model_dir=REC_PATH)
 
 
 class ScreenShotsWin(QWidget):
     # 定义一个信号
     oksignal = pyqtSignal()
 
-    def __init__(self, content_single, is_precision=False):
+    def __init__(self, content_single, MyWin, is_precision=False):
         super(ScreenShotsWin, self).__init__()
         self.initUI()
         self.start = (0, 0)  # 开始坐标点
@@ -187,6 +207,7 @@ class ScreenShotsWin(QWidget):
         self.content = None
         self.is_precision = is_precision
         self.setCursor(QCursor(Qt.CrossCursor))
+        self.MyWin = MyWin
 
     def initUI(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -213,7 +234,7 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(img_byte)
+            self.content = get_content(img_byte, self.MyWin.ocr)
             self.content_single.emit()
 
         self.close()
@@ -271,52 +292,99 @@ class ScreenShotsWin(QWidget):
 
 class UpdateConfig(QWidget):
 
-    def __init__(self, oksignal_update_config):
+    def __init__(self, oksignal_update_config, MyWin):
         super().__init__()
         self.oksignal_update_config = oksignal_update_config
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.config = configparser.ConfigParser()
-        self.config_path = 'config.ini'
-        self.config.read(self.config_path, encoding='utf8')
-        paddleocr = self.config["paddleocr"]
+        self.MyWin = MyWin
+        self.read_config()
+
         image_path = self.resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
         self.initUI()
+
+    def read_config(self):
+        self.config = configparser.ConfigParser()
+        self.config_path = 'config.ini'
+        self.config.read(self.config_path, encoding='utf8')
+        self.paddleocr = self.config["paddleocr"]
+        self.LANG = self.paddleocr.get('LANG')
 
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
         base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base_path, relative_path)
 
+    def btn_cls_choose_file(self):
+        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.cls_file_btn.setText(self.cls_path)
+
+    def btn_det_choose_file(self):
+        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.det_file_btn.setText(self.det_path)
+
+    def btn_rec_choose_file(self):
+        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.rec_file_btn.setText(self.rec_path)
+
     def initUI(self):
+        self.cls_path = ''
+        self.det_path = ''
+        self.rec_path = ''
+        lang = QLabel('识别语言：')
+        cls = QLabel('cls模块路径：')
+        det = QLabel('det模块路径：')
+        rec = QLabel('rec模块路径：')
         author = QLabel('作者：')
         github_url = QLabel('github：')
         paddleocr_github_url = QLabel('paddleocr:')
 
+        self.lang_Box = QComboBox()
+
+        self.cls_file_btn = QPushButton(self.paddleocr.get('CLS_PATH') or '选择cls模块路径', self,
+                                        clicked=self.btn_cls_choose_file)
+        self.det_file_btn = QPushButton(self.paddleocr.get('DET_PATH') or '选择det模块路径', self,
+                                        clicked=self.btn_det_choose_file)
+        self.rec_file_btn = QPushButton(self.paddleocr.get('REC_PATH') or '选择rec模块路径', self,
+                                        clicked=self.btn_rec_choose_file)
         self.author_Edit = QLineEdit()
         self.github_url_Edit = QLineEdit()
-        self.paddleocr_github_url_Edit2 = QLineEdit()
+        self.paddleocr_github_url_Edit = QLineEdit()
+        # 设置默认值
+        for key in self.MyWin.lang_dict.keys():
+            self.lang_Box.addItem(key)
+        # self.lang_Box.setCurrentIndex(list(self.MyWin.lang_dict.keys()).index(self.paddleocr.get('LANG')))
+        self.lang_Box.setCurrentText(self.paddleocr.get('LANG', '中文'))
+
         self.author_Edit.setText("libaibuaidufu")
         self.github_url_Edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
-        self.paddleocr_github_url_Edit2.setText("https://github.com/PaddlePaddle/PaddleOCR")
+        self.paddleocr_github_url_Edit.setText("https://github.com/PaddlePaddle/PaddleOCR")
         # self.secret_key_Edit2.setDisabled(True)
+
         grid = QGridLayout()
         grid.setSpacing(10)
-
-        grid.addWidget(author, 2, 0)
-        grid.addWidget(self.author_Edit, 2, 1)
-
-        grid.addWidget(github_url, 3, 0)
-        grid.addWidget(self.github_url_Edit, 3, 1)
-
-        grid.addWidget(paddleocr_github_url, 4, 0)
-        grid.addWidget(self.paddleocr_github_url_Edit2, 4, 1)
+        grid_dict = {
+            lang: self.lang_Box,
+            cls: self.cls_file_btn,
+            det: self.det_file_btn,
+            rec: self.rec_file_btn,
+            author: self.author_Edit,
+            github_url: self.github_url_Edit,
+            paddleocr_github_url: self.paddleocr_github_url_Edit
+        }
+        index = 0
+        for key, value in grid_dict.items():
+            grid.addWidget(key, index + 1, 0)
+            grid.addWidget(value, index + 1, 1)
+            index += 1
 
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
         self.btn = QPushButton('保存', self, clicked=self.save_config)
+        self.reset_btn = QPushButton('恢复默认', self, clicked=self.reset_config)
         vbox.addLayout(grid)
         hbox.addStretch(1)
+        hbox.addWidget(self.reset_btn)
         hbox.addWidget(self.btn)
         vbox.addLayout(hbox)
         self.setLayout(vbox)
@@ -324,7 +392,47 @@ class UpdateConfig(QWidget):
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('修改OCR-API配置')
 
+    def reset_config(self):
+        if os.path.isfile(self.config_path):
+            os.remove(self.config_path)
+        lang = 'ch'
+        cls_model_config = get_model_config(VERSION, 'cls', lang)
+        det_model_config = get_model_config(VERSION, 'det', lang)
+        rec_model_config = get_model_config(VERSION, 'rec', lang)
+        ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
+        CLS_PATH, _ = confirm_model_dir_url(None, ocr_path / 'cls', cls_model_config['url'])
+        DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
+        REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
+        with open("config.ini", 'w', encoding='utf8') as f:
+            f.write('[paddleocr]\n')
+            f.write('LANG = 中文\n')
+            f.write(f'CLS_PATH = {CLS_PATH}\n')
+            f.write(f'DET_PATH = {DET_PATH}\n')
+            f.write(f'REC_PATH = {REC_PATH}\n')
+            f.write('FONT = Arial\n')
+            f.write('FONT_SIZE = 12')
+        self.MyWin.ocr = init_paddleocr(lang=self.MyWin.lang_dict.get('中文', 'ch'), cls_model_dir=CLS_PATH,
+                                        det_model_dir=DET_PATH,
+                                        rec_model_dir=REC_PATH)
+        self.read_config()
+        self.MyWin.config = self.config
+
     def save_config(self):
+        self.config.set("paddleocr", "LANG", self.lang_Box.currentText())  # set to modify
+        if self.lang_Box.currentText() != self.LANG:
+            ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
+            lang = self.MyWin.lang_dict.get(self.lang_Box.currentText())
+            if lang in ['ch', 'en', 'structure']:
+                det_model_config = get_model_config(VERSION, 'det', lang)
+                DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
+                self.config.set("paddleocr", "DET_PATH", DET_PATH)
+            rec_model_config = get_model_config(VERSION, 'rec', lang)
+            REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
+            self.config.set("paddleocr", "REC_PATH", REC_PATH)
+        else:
+            self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
+            self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None
+            self.config.set("paddleocr", "REC_PATH", self.rec_path) if self.rec_path else None
         with open(self.config_path, "w+", encoding='utf8') as f:
             self.config.write(f)
         self.oksignal_update_config.emit()

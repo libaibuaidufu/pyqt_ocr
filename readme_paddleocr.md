@@ -188,6 +188,11 @@ ModuleNotFoundError: No module named ‘skimage.feature._orb_descriptor_position
 降低版本 0.7.1
 `pip install astor==0.7.1`
 
+* 5 pyinstaller可执行文件报错 geos.dll
+
+`Unable to find "d:\python\envs\paddleocr-venv-37\lib\site-packages\shapely\DLLs\geos.dll" when adding binary and data files.`
+没有找到geos.dll，去`lib\site-packages\shapely\DLLs` 复制 `geos_c.dll` 为 `geos.dll`
+
 问题解决。
 
 #### 参考

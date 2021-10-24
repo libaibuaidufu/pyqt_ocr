@@ -6,19 +6,29 @@
 """
 
 import io
+import pathlib
 import traceback
 
 import numpy as np
 from PIL import Image
 from paddleocr import PaddleOCR
+from paddleocr.paddleocr import BASE_DIR, VERSION,parse_args
 
 
-def get_content(img):
+def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=''):
+    if all([cls_model_dir, det_model_dir, rec_model_dir]):
+        ocr = PaddleOCR(use_angle_cls=True, lang=lang,
+                        use_gpu=False, cls_model_dir=cls_model_dir, det_model_dir=det_model_dir,
+                        rec_model_dir=rec_model_dir)  # need to run only once to download and load model into memory
+    else:
+        ocr = PaddleOCR(use_angle_cls=True, lang=lang,
+                        use_gpu=False)  # need to run only once to download and load model into memory
+    return ocr
+
+
+def get_content(img, ocr):
     try:
         # Paddleocr目前支持的多语言语种可以通过修改lang参数进行切换
-        # 例如`ch`, `en`, `fr`, `german`, `korean`, `japan`
-        ocr = PaddleOCR(use_angle_cls=True, lang="ch",
-                        use_gpu=False)  # need to run only once to download and load model into memory
         pil_img = Image.open(io.BytesIO(img.data()))
         result = ocr.ocr(np.array(pil_img), cls=True)
         boxes = [line[0] for line in result]
