@@ -9,10 +9,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog, QComboBox, QFileDialog
-from paddleocr.paddleocr import get_model_config, VERSION, BASE_DIR
-from paddleocr.ppocr.utils.network import confirm_model_dir_url
 
-from ocr_paddle import get_content, init_paddleocr
+from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url
 
 
 class QPixmap2QByteArray(object):
