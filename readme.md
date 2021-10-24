@@ -43,5 +43,5 @@
 
 ### 预览
 
-![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr/preview.png)
-![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr/preview2.png)
+![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr-offline/preview.png)
+![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr-offline/preview2.png)
