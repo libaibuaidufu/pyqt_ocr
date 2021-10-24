@@ -4,6 +4,14 @@
 
 文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
 
+###### 2021-10-24 更新
+1. 增加 识别语言设置
+2. 增加 方向模型路径设置、检测模型路径设置、识别模型路径设置，可以自己配置，也可以直接选择识别语言自动下载。
+3. [点击进入模型下载地址](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.3/doc/doc_ch/models_list.md)
+4. 如果不会就不要乱选择，万一不能运行了。就删除config.ini或者恢复默认设置。
+5. 识别模型默认是轻量版本10M左右，选择中文服务端版本，这个150M左右。这些都是需要在线下载的。
+6. **注意：下载模型是需要时间，因此你点了保存，他就会下载，所以完成时间跟你的网速有关。不要重复点击保存。**
+7. 后续在更新更多的配置设置
 ###### 2021-10-22 更新
 1. 增加 飞桨离线服务整合版（包很大 200M）[paddleocr离线版](https://github.com/libaibuaidufu/pyqt_ocr/tree/paddleocr-offline)
 2. 离线版扫描纯文档效果还行，其他的还是有很多问题。等着后续优化。
@@ -36,3 +44,4 @@
 ### 预览
 
 ![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr/preview.png)
+![image](https://github.com/libaibuaidufu/pyqt_orc/blob/paddleocr/preview2.png)

@@ -2,6 +2,7 @@ import configparser
 import os
 import pathlib
 import sys
+import traceback
 
 import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
@@ -42,7 +43,7 @@ class MyWin(QWidget):
         self.config_path = 'config.ini'
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
-        self.lang_dict = dict(中文='ch', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan')
+        self.lang_dict = dict(中文='ch', 中文服务端版='ch_server', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan')
         self.read_config()
         self.initUi()
         self.set_font()
@@ -418,25 +419,36 @@ class UpdateConfig(QWidget):
         self.MyWin.config = self.config
 
     def save_config(self):
-        self.config.set("paddleocr", "LANG", self.lang_Box.currentText())  # set to modify
-        if self.lang_Box.currentText() != self.LANG:
-            ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
-            lang = self.MyWin.lang_dict.get(self.lang_Box.currentText())
-            if lang in ['ch', 'en', 'structure']:
-                det_model_config = get_model_config(VERSION, 'det', lang)
-                DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
-                self.config.set("paddleocr", "DET_PATH", DET_PATH)
-            rec_model_config = get_model_config(VERSION, 'rec', lang)
-            REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
-            self.config.set("paddleocr", "REC_PATH", REC_PATH)
-        else:
-            self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
-            self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None
-            self.config.set("paddleocr", "REC_PATH", self.rec_path) if self.rec_path else None
-        with open(self.config_path, "w+", encoding='utf8') as f:
-            self.config.write(f)
-        self.oksignal_update_config.emit()
-        self.close()
+        try:
+            self.config.set("paddleocr", "LANG", self.lang_Box.currentText())  # set to modify
+            if self.lang_Box.currentText() != self.LANG:
+                ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
+                lang = self.MyWin.lang_dict.get(self.lang_Box.currentText())
+                if lang == 'ch_server':
+                    DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang,
+                                                        'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar')
+                    self.config.set("paddleocr", "DET_PATH", DET_PATH)
+                    REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang,
+                                                        'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar')
+                    self.config.set("paddleocr", "REC_PATH", REC_PATH)
+                else:
+                    if lang in ['ch', 'en', 'structure']:
+                        det_model_config = get_model_config(VERSION, 'det', lang)
+                        DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
+                        self.config.set("paddleocr", "DET_PATH", DET_PATH)
+                    rec_model_config = get_model_config(VERSION, 'rec', lang)
+                    REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
+                    self.config.set("paddleocr", "REC_PATH", REC_PATH)
+            else:
+                self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
+                self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None
+                self.config.set("paddleocr", "REC_PATH", self.rec_path) if self.rec_path else None
+            with open(self.config_path, "w+", encoding='utf8') as f:
+                self.config.write(f)
+            self.oksignal_update_config.emit()
+            self.close()
+        except:
+            traceback.print_exc()
 
 
 if __name__ == '__main__':
