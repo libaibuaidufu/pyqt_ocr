@@ -6,18 +6,17 @@
 """
 
 import io
-import json
 import os.path
 import re
 import sys
 import traceback
 
-import cv2
 import numpy as np
 from PIL import Image
 from paddleocr import PaddleOCR
 
-VERSION = 'paddleocr_offline_1.0'
+# VERSION = __version__
+VERSION = "paddleocr_offline_v1"
 BASE_DIR = os.path.expanduser("~/.paddleocr/")
 
 DEFAULT_MODEL_VERSION = 'PP-OCR'
@@ -62,7 +61,8 @@ MODEL_URLS = {
                 'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
             },
             'ch_server': {
-                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar'
+                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar',
+                'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
             },
             'en': {
                 'url':
@@ -156,19 +156,40 @@ def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=
     if all([cls_model_dir, det_model_dir, rec_model_dir]):
         ocr = PaddleOCR(use_angle_cls=True, lang=lang,
                         use_gpu=False, cls_model_dir=cls_model_dir, det_model_dir=det_model_dir,
-                        rec_model_dir=rec_model_dir)  # need to run only once to download and load model into memory
+                        rec_model_dir=rec_model_dir)
     else:
         ocr = PaddleOCR(use_angle_cls=True, lang=lang,
-                        use_gpu=False)  # need to run only once to download and load model into memory
+                        use_gpu=False)
     return ocr
 
 
+def get_content(img, ocr):
+    try:
+        img = np.array(Image.open(io.BytesIO(img.data())))
+        dt_boxes, rec_res = ocr(img, cls=True)
+        dt_num = len(dt_boxes)
+        rec_res_final = []
+        for dno in range(dt_num):
+            text, score = rec_res[dno]
+            rec_res_final.append({
+                'text': text,
+                'confidence': float(score),
+                'text_region': dt_boxes[dno].astype(np.int).tolist()
+            })
+        return ocr_point_to_str(rec_res_final)
+    except:
+        traceback.print_exc()
+        return "识别程序出错了！"
+
+
 def ocr_to_str(resp_json):
+    """
+    老版本文字拼接
+    """
     content = ""
     last_num = 0
     is_end = False
     last_end = False
-    print(json.dumps(resp_json,indent=4,ensure_ascii=False))
     for word_dict in resp_json:
         word = word_dict["text"]
         word_num = len(word)
@@ -204,71 +225,44 @@ def ocr_to_str(resp_json):
     return content.strip()
 
 
-def get_content(img, ocr):
+def ocr_point_to_str(result, x_box=15, y_box=10):
+    """
+    新版本 利用 矩形点位 拼接文字
+    """
     try:
-        img = np.array(Image.open(io.BytesIO(img.data())))
-        # if isinstance(img, np.ndarray) and len(img.shape) == 2:
-        #     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        dt_boxes, rec_res = ocr(img, cls=True)
-        dt_num = len(dt_boxes)
-        rec_res_final = []
-        for dno in range(dt_num):
-            text, score = rec_res[dno]
-            rec_res_final.append({
-                'text': text,
-                'confidence': float(score),
-                'text_region': dt_boxes[dno].astype(np.int).tolist()
-            })
-        return ocr_to_str(rec_res_final)
-    except:
-        traceback.print_exc()
-        return "识别程序出错了！"
-
-
-def get_predict_content(img, ocr):
-    try:
-        # Paddleocr目前支持的多语言语种可以通过修改lang参数进行切换
-        pil_img = Image.open(io.BytesIO(img.data()))
-        result = ocr.ocr(np.array(pil_img), cls=True)
-        boxes = [line[0] for line in result]
         min_x = 0
         min_y = 0
         max_x = 0
         max_y = 0
         data_boxes = []
-        for index, x in enumerate(boxes):
-            b = [int(v) for v in x[0]] + [int(j) for j in x[2]]
+        for index, line in enumerate(result):
+            point_list = line.get("text_region")
+            x1, y1, x2, y2 = [int(p) for p in point_list[0] + point_list[2]]
             if index == 0:
-                max_x = b[2]
-                min_x = b[0]
-                min_y = b[3] - b[1]
-            min_x = min(b[0], min_x)
-            min_y = min(b[3] - b[1], min_y)
-            max_x = max(b[2], max_x)
-            data_boxes.append(b)
-        # print(data_boxes)
-        # print(min_x, max_x, min_y, max_x - min_x)
+                max_x = x2
+                min_x = x1
+                min_y = y2 - y1
+            min_x = min(x1, min_x)
+            min_y = min(y2 - y1, min_y)
+            max_x = max(x2, max_x)
+            data_boxes.append([x1, y1, x2, y2, x2 - x1, y2 - y1])
         content = ""
         last_box = []
-        for index, data in enumerate(result):
-            text = data[1][0]
-            print(text)
-            box = data[0]
-            box_four = [int(v) for v in box[0]] + [int(j) for j in box[2]]
-            box_width = box_four[2] - box_four[0]
-            box_four.append(box_width)
-            # print(text)
-            # print(box_four)
-            if min_x in range(box_four[0] - 5, box_four[0] + 5):
-                if last_box and last_box[4] not in range(max_x - 10, max_x + 10):
+        for box, data in zip(data_boxes, result):
+            text = data.get("text")
+            x1, y1, x2, y2, box_width, box_height = box
+            if min_x in range(x1 - x_box, x1 + x_box):
+                if last_box and last_box[2] not in range(max_x - x_box, max_x + x_box):
                     content += "\n" + text
                 elif content and content[-1] in ["。", '!', '；', ';']:
                     content += "\n" + text
                 else:
                     content += text
+            elif last_box and last_box[3] in range(y2 - y_box, y2 + y_box):
+                content += " " + text
             else:
                 content += "\n" + text
-            last_box = box_four
+            last_box = box
         return content
     except:
         traceback.print_exc()
@@ -276,6 +270,9 @@ def get_predict_content(img, ocr):
 
 
 def get_model_config(version, model_type, lang):
+    """
+    下载 LANG 的模型地址
+    """
     if version not in MODEL_URLS:
         version = DEFAULT_MODEL_VERSION
     if model_type not in MODEL_URLS[version]:
@@ -294,6 +291,9 @@ def get_model_config(version, model_type, lang):
 
 
 def confirm_model_dir_url(model_dir, default_model_dir, default_url):
+    """
+    获取路径 和地址
+    """
     url = default_url
     if model_dir is None or is_link(model_dir):
         if is_link(model_dir):

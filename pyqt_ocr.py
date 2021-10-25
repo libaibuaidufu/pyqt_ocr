@@ -10,7 +10,8 @@ from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
     QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog, QComboBox, QFileDialog
 
-from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url
+from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url, \
+    MODEL_URLS, DEFAULT_MODEL_VERSION
 
 
 class QPixmap2QByteArray(object):
@@ -31,19 +32,29 @@ class QPixmap2QByteArray(object):
         return byte_array
 
 
-class MyWin(QWidget):
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+
+class OcrWidget(QWidget):
     oksignal_content = pyqtSignal()
     oksignal_update_config = pyqtSignal()
 
     def __init__(self):
-        super(MyWin, self).__init__()
+        super(OcrWidget, self).__init__()
         self.is_add = False
         self.config_path = 'config.ini'
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
-        self.lang_dict = dict(中文='ch', 中文服务端版='ch_server', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan')
+        self.lang_dict = dict(中文='ch', 中文服务端版='ch_server', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan',
+                              中文繁体='chinese_cht', 泰卢固文='te', 卡纳达文='ka', 泰米尔文='ta', 拉丁文='latin', 阿拉伯字母='arabic',
+                              斯拉夫字母='cyrillic', 梵文字母='devanagari')
+        self.MODEL_VERSION = 'PP-OCRv2'
+        self.ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
         self.read_config()
-        self.initUi()
+        self.init_ui()
         self.set_font()
 
         # https://stackoverflow.com/questions/56949297/how-to-fix-importerror-unable-to-find-qt5core-dll-on-path-after-pyinstaller-b
@@ -53,17 +64,12 @@ class MyWin(QWidget):
             font = QFont(self.FONT, int(self.FONT_SIZE))
         self.textEdit.setFont(font)
 
-    def resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(base_path, relative_path)
-
-    def initUi(self):
+    def init_ui(self):
         # 窗口大小设置为600*500
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("截图")
+        self.setWindowTitle("飞桨识别离线版")
         self.resize(400, 300)
-        image_path = self.resource_path("image\logo.ico")
+        image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
@@ -153,62 +159,64 @@ class MyWin(QWidget):
         value = self.textEdit.toPlainText()
         self.clipboard.setText(value)
 
-    def read_config(self):
-
-        if os.path.isfile(self.config_path):
-            self.config = configparser.ConfigParser()
-            self.config.read(self.config_path, encoding='utf8')
-            paddleocr = self.config["paddleocr"]
-            LANG = paddleocr['LANG']
-            CLS_PATH = paddleocr['CLS_PATH']
-            DET_PATH = paddleocr['DET_PATH']
-            REC_PATH = paddleocr['REC_PATH']
-            self.FONT = paddleocr['FONT']
-            self.FONT_SIZE = paddleocr["FONT_SIZE"]
-        else:
-            cls_model_config = get_model_config(VERSION, 'cls', 'ch')
-            det_model_config = get_model_config(VERSION, 'det', 'ch')
-            rec_model_config = get_model_config(VERSION, 'rec', 'ch')
-            ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
-            CLS_PATH, _ = confirm_model_dir_url(None, ocr_path / 'cls', cls_model_config['url'])
-            DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / 'ch', det_model_config['url'])
-            REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / 'ch', rec_model_config['url'])
-
+    def reset_config(self):
+        if not os.path.isfile(self.config_path):
+            cls_path = self.download_path('cls', 'ch')
+            det_path = self.download_path('det', 'ch')
+            rec_path = self.download_path('rec', 'ch')
             with open("config.ini", 'w', encoding='utf8') as f:
                 f.write('[paddleocr]\n')
                 f.write('LANG = 中文\n')
-                f.write(f'CLS_PATH = {CLS_PATH}\n')
-                f.write(f'DET_PATH = {DET_PATH}\n')
-                f.write(f'REC_PATH = {REC_PATH}\n')
+                f.write(f'CLS_PATH = {cls_path}\n')
+                f.write(f'DET_PATH = {det_path}\n')
+                f.write(f'REC_PATH = {rec_path}\n')
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12')
-            LANG = "中文"
-            self.FONT = "Arial"
-            self.FONT_SIZE = "12"
-            self.config = configparser.ConfigParser()
-            self.config.read(self.config_path, encoding='utf8')
-        lang_dict = dict(中文='ch', 英文='en', 法文='fr', 德文='german', 韩文='korean', 日文='japan')
 
-        self.ocr = init_paddleocr(lang=lang_dict.get(LANG, 'ch'), cls_model_dir=CLS_PATH, det_model_dir=DET_PATH,
-                                  rec_model_dir=REC_PATH)
+    def read_config(self):
+        if not os.path.isfile(self.config_path):
+            self.reset_config()
+        self.save_config_to_paddleocr()
+
+    def save_config_to_paddleocr(self):
+        self.config = configparser.ConfigParser()
+        self.config.read(self.config_path, encoding='utf8')
+        paddleocr = self.config["paddleocr"]
+        lang = paddleocr['LANG']
+        cls_path = paddleocr['CLS_PATH']
+        det_path = paddleocr['DET_PATH']
+        rec_path = paddleocr['REC_PATH']
+        self.FONT = paddleocr['FONT']
+        self.FONT_SIZE = paddleocr["FONT_SIZE"]
+        self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), cls_model_dir=cls_path, det_model_dir=det_path,
+                                  rec_model_dir=rec_path)
+        return self.ocr
+
+    def download_path(self, model, lang):
+        model_config = get_model_config(self.MODEL_VERSION, model, lang)
+        if model == 'cls':
+            model_path, _ = confirm_model_dir_url(None, self.ocr_path / model, model_config['url'])
+        else:
+            model_path, _ = confirm_model_dir_url(None, self.ocr_path / model / lang, model_config['url'])
+        return model_path
 
 
 class ScreenShotsWin(QWidget):
     # 定义一个信号
     oksignal = pyqtSignal()
 
-    def __init__(self, content_single, MyWin, is_precision=False):
+    def __init__(self, content_single, OcrWidget, is_precision=False):
         super(ScreenShotsWin, self).__init__()
-        self.initUI()
+        self.init_ui()
         self.start = (0, 0)  # 开始坐标点
         self.end = (0, 0)  # 结束坐标点
         self.content_single = content_single
         self.content = None
         self.is_precision = is_precision
         self.setCursor(QCursor(Qt.CrossCursor))
-        self.MyWin = MyWin
+        self.OcrWidget = OcrWidget
 
-    def initUI(self):
+    def init_ui(self):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowOpacity(0.05)
 
@@ -233,7 +241,7 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(img_byte, self.MyWin.ocr)
+            self.content = get_content(img_byte, self.OcrWidget.ocr)
             self.content_single.emit()
 
         self.close()
@@ -291,45 +299,40 @@ class ScreenShotsWin(QWidget):
 
 class UpdateConfig(QWidget):
 
-    def __init__(self, oksignal_update_config, MyWin):
+    def __init__(self, oksignal_update_config, OcrWidget):
         super().__init__()
         self.oksignal_update_config = oksignal_update_config
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.MyWin = MyWin
-        self.read_config()
+        self.OcrWidget = OcrWidget
 
-        image_path = self.resource_path("image\logo.ico")
-        self.setWindowIcon(QIcon(image_path))
-        self.initUI()
-
-    def read_config(self):
+        self.cls_path = ''
+        self.det_path = ''
+        self.rec_path = ''
         self.config = configparser.ConfigParser()
         self.config_path = 'config.ini'
         self.config.read(self.config_path, encoding='utf8')
         self.paddleocr = self.config["paddleocr"]
         self.LANG = self.paddleocr.get('LANG')
 
-    def resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(base_path, relative_path)
+        image_path = resource_path("image\logo.ico")
+        self.setWindowIcon(QIcon(image_path))
+        self.init_ui()
+
+
 
     def btn_cls_choose_file(self):
-        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
         self.cls_file_btn.setText(self.cls_path)
 
     def btn_det_choose_file(self):
-        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('DET_PATH') or "C:/")  # 起始路径
         self.det_file_btn.setText(self.det_path)
 
     def btn_rec_choose_file(self):
-        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", "C:/")  # 起始路径
+        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('REC_PATH') or "C:/")  # 起始路径
         self.rec_file_btn.setText(self.rec_path)
 
-    def initUI(self):
-        self.cls_path = ''
-        self.det_path = ''
-        self.rec_path = ''
+    def init_ui(self):
         lang = QLabel('识别语言：')
         cls = QLabel('cls模块路径：')
         det = QLabel('det模块路径：')
@@ -350,9 +353,9 @@ class UpdateConfig(QWidget):
         self.github_url_Edit = QLineEdit()
         self.paddleocr_github_url_Edit = QLineEdit()
         # 设置默认值
-        for key in self.MyWin.lang_dict.keys():
+        for key in self.OcrWidget.lang_dict.keys():
             self.lang_Box.addItem(key)
-        # self.lang_Box.setCurrentIndex(list(self.MyWin.lang_dict.keys()).index(self.paddleocr.get('LANG')))
+        # self.lang_Box.setCurrentIndex(list(self.OcrWidget.lang_dict.keys()).index(self.paddleocr.get('LANG')))
         self.lang_Box.setCurrentText(self.paddleocr.get('LANG', '中文'))
 
         self.author_Edit.setText("libaibuaidufu")
@@ -394,49 +397,23 @@ class UpdateConfig(QWidget):
     def reset_config(self):
         if os.path.isfile(self.config_path):
             os.remove(self.config_path)
-        lang = 'ch'
-        cls_model_config = get_model_config(VERSION, 'cls', lang)
-        det_model_config = get_model_config(VERSION, 'det', lang)
-        rec_model_config = get_model_config(VERSION, 'rec', lang)
-        ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
-        CLS_PATH, _ = confirm_model_dir_url(None, ocr_path / 'cls', cls_model_config['url'])
-        DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
-        REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
-        with open("config.ini", 'w', encoding='utf8') as f:
-            f.write('[paddleocr]\n')
-            f.write('LANG = 中文\n')
-            f.write(f'CLS_PATH = {CLS_PATH}\n')
-            f.write(f'DET_PATH = {DET_PATH}\n')
-            f.write(f'REC_PATH = {REC_PATH}\n')
-            f.write('FONT = Arial\n')
-            f.write('FONT_SIZE = 12')
-        self.MyWin.ocr = init_paddleocr(lang=self.MyWin.lang_dict.get('中文', 'ch'), cls_model_dir=CLS_PATH,
-                                        det_model_dir=DET_PATH,
-                                        rec_model_dir=REC_PATH)
-        self.read_config()
-        self.MyWin.config = self.config
+        self.OcrWidget.reset_config()
+        self.OcrWidget.save_config_to_paddleocr()
+        self.close()
 
     def save_config(self):
         try:
-            self.config.set("paddleocr", "LANG", self.lang_Box.currentText())  # set to modify
+            self.config.set("paddleocr", "LANG", self.lang_Box.currentText())
             if self.lang_Box.currentText() != self.LANG:
-                ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
-                lang = self.MyWin.lang_dict.get(self.lang_Box.currentText())
-                # if lang == 'ch_server':
-                #     DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang,
-                #                                         'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar')
-                #     self.config.set("paddleocr", "DET_PATH", DET_PATH)
-                #     REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang,
-                #                                         'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar')
-                #     self.config.set("paddleocr", "REC_PATH", REC_PATH)
-                # else:
-                if lang in ['ch', 'en', 'structure']:
-                    det_model_config = get_model_config(VERSION, 'det', lang)
-                    DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
-                    self.config.set("paddleocr", "DET_PATH", DET_PATH)
-                rec_model_config = get_model_config(VERSION, 'rec', lang)
-                REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
-                self.config.set("paddleocr", "REC_PATH", REC_PATH)
+                lang = self.OcrWidget.lang_dict.get(self.lang_Box.currentText())
+                if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['rec'].keys():
+                    if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['det'].keys():
+                        det_lang = lang
+                    else:
+                        det_lang = 'en'
+                    self.config.set("paddleocr", "DET_PATH", self.OcrWidget.download_path('det', det_lang))
+                    self.config.set("paddleocr", "REC_PATH", self.OcrWidget.download_path('rec', lang))
+                    self.config.set("paddleocr", "CLS_PATH", self.OcrWidget.download_path('cls', 'ch'))
             else:
                 self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
                 self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None
@@ -452,6 +429,6 @@ class UpdateConfig(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setStyle('Fusion')  # 修改样式
-    dbb = MyWin()
+    dbb = OcrWidget()
     dbb.show()
     sys.exit(app.exec_())
