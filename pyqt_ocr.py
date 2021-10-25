@@ -318,8 +318,6 @@ class UpdateConfig(QWidget):
         self.setWindowIcon(QIcon(image_path))
         self.init_ui()
 
-
-
     def btn_cls_choose_file(self):
         self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
         self.cls_file_btn.setText(self.cls_path)
@@ -334,20 +332,20 @@ class UpdateConfig(QWidget):
 
     def init_ui(self):
         lang = QLabel('识别语言：')
-        cls = QLabel('cls模块路径：')
-        det = QLabel('det模块路径：')
-        rec = QLabel('rec模块路径：')
+        cls = QLabel('cls模型路径：')
+        det = QLabel('det模型路径：')
+        rec = QLabel('rec模型路径：')
         author = QLabel('作者：')
         github_url = QLabel('github：')
         paddleocr_github_url = QLabel('paddleocr:')
 
         self.lang_Box = QComboBox()
 
-        self.cls_file_btn = QPushButton(self.paddleocr.get('CLS_PATH') or '选择cls模块路径', self,
+        self.cls_file_btn = QPushButton(self.paddleocr.get('CLS_PATH') or '选择cls模型路径', self,
                                         clicked=self.btn_cls_choose_file)
-        self.det_file_btn = QPushButton(self.paddleocr.get('DET_PATH') or '选择det模块路径', self,
+        self.det_file_btn = QPushButton(self.paddleocr.get('DET_PATH') or '选择det模型路径', self,
                                         clicked=self.btn_det_choose_file)
-        self.rec_file_btn = QPushButton(self.paddleocr.get('REC_PATH') or '选择rec模块路径', self,
+        self.rec_file_btn = QPushButton(self.paddleocr.get('REC_PATH') or '选择rec模型路径', self,
                                         clicked=self.btn_rec_choose_file)
         self.author_Edit = QLineEdit()
         self.github_url_Edit = QLineEdit()
@@ -392,7 +390,7 @@ class UpdateConfig(QWidget):
         self.setLayout(vbox)
 
         self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('修改OCR-API配置')
+        self.setWindowTitle('修改OCR配置')
 
     def reset_config(self):
         if os.path.isfile(self.config_path):

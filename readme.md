@@ -4,6 +4,10 @@
 
 文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
 
+###### 2021-10-25 更新
+1. 优化结构
+2. 优化了text、box合并方法
+3. 直接选择识别语言，自动下载即可。无需自动选择模型，除非自己有必要。
 ###### 2021-10-24 更新
 1. 增加 识别语言设置
 2. 增加 方向模型路径设置、检测模型路径设置、识别模型路径设置，可以自己配置，也可以直接选择识别语言自动下载。
