@@ -422,21 +422,21 @@ class UpdateConfig(QWidget):
             if self.lang_Box.currentText() != self.LANG:
                 ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
                 lang = self.MyWin.lang_dict.get(self.lang_Box.currentText())
-                if lang == 'ch_server':
-                    DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang,
-                                                        'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar')
+                # if lang == 'ch_server':
+                #     DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang,
+                #                                         'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar')
+                #     self.config.set("paddleocr", "DET_PATH", DET_PATH)
+                #     REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang,
+                #                                         'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar')
+                #     self.config.set("paddleocr", "REC_PATH", REC_PATH)
+                # else:
+                if lang in ['ch', 'en', 'structure']:
+                    det_model_config = get_model_config(VERSION, 'det', lang)
+                    DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
                     self.config.set("paddleocr", "DET_PATH", DET_PATH)
-                    REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang,
-                                                        'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar')
-                    self.config.set("paddleocr", "REC_PATH", REC_PATH)
-                else:
-                    if lang in ['ch', 'en', 'structure']:
-                        det_model_config = get_model_config(VERSION, 'det', lang)
-                        DET_PATH, _ = confirm_model_dir_url(None, ocr_path / 'det' / lang, det_model_config['url'])
-                        self.config.set("paddleocr", "DET_PATH", DET_PATH)
-                    rec_model_config = get_model_config(VERSION, 'rec', lang)
-                    REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
-                    self.config.set("paddleocr", "REC_PATH", REC_PATH)
+                rec_model_config = get_model_config(VERSION, 'rec', lang)
+                REC_PATH, _ = confirm_model_dir_url(None, ocr_path / 'rec' / lang, rec_model_config['url'])
+                self.config.set("paddleocr", "REC_PATH", REC_PATH)
             else:
                 self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
                 self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None

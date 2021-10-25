@@ -6,15 +6,18 @@
 """
 
 import io
+import json
 import os.path
+import re
 import sys
 import traceback
 
+import cv2
 import numpy as np
 from PIL import Image
 from paddleocr import PaddleOCR
 
-VERSION = '2.3.0.1'
+VERSION = 'paddleocr_offline_1.0'
 BASE_DIR = os.path.expanduser("~/.paddleocr/")
 
 DEFAULT_MODEL_VERSION = 'PP-OCR'
@@ -47,6 +50,9 @@ MODEL_URLS = {
             'structure': {
                 'url':
                     'https://paddleocr.bj.bcebos.com/dygraph_v2.0/table/en_ppocr_mobile_v2.0_table_det_infer.tar'
+            },
+            'ch_server': {
+                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar'
             }
         },
         'rec': {
@@ -54,6 +60,9 @@ MODEL_URLS = {
                 'url':
                     'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_rec_infer.tar',
                 'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
+            },
+            'ch_server': {
+                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar'
             },
             'en': {
                 'url':
@@ -154,7 +163,69 @@ def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=
     return ocr
 
 
+def ocr_to_str(resp_json):
+    content = ""
+    last_num = 0
+    is_end = False
+    last_end = False
+    print(json.dumps(resp_json,indent=4,ensure_ascii=False))
+    for word_dict in resp_json:
+        word = word_dict["text"]
+        word_num = len(word)
+        if last_end:
+            is_end = True
+        elif re.match("^\d[\.、]", word):
+            is_end = True
+        elif len(word.split(":")) == 2:
+            is_end = True
+        elif word[-1] == "。" and word_num > last_num + 3 and last_end != True:
+            is_end = True
+        if word[-1] in (".", ":", "。"):
+            is_end = False
+        else:
+            is_end = False
+
+        if last_end:
+            content += "\n" + word
+        elif is_end:
+            content += "\n" + word
+        elif word_num > last_num + 3:
+            content += "\n" + word
+        else:
+            # content += "1"
+            content += word
+
+        if word[-1] in (".", ":", "。"):
+            last_end = True
+        else:
+            last_end = False
+
+        last_num = word_num
+    return content.strip()
+
+
 def get_content(img, ocr):
+    try:
+        img = np.array(Image.open(io.BytesIO(img.data())))
+        # if isinstance(img, np.ndarray) and len(img.shape) == 2:
+        #     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        dt_boxes, rec_res = ocr(img, cls=True)
+        dt_num = len(dt_boxes)
+        rec_res_final = []
+        for dno in range(dt_num):
+            text, score = rec_res[dno]
+            rec_res_final.append({
+                'text': text,
+                'confidence': float(score),
+                'text_region': dt_boxes[dno].astype(np.int).tolist()
+            })
+        return ocr_to_str(rec_res_final)
+    except:
+        traceback.print_exc()
+        return "识别程序出错了！"
+
+
+def get_predict_content(img, ocr):
     try:
         # Paddleocr目前支持的多语言语种可以通过修改lang参数进行切换
         pil_img = Image.open(io.BytesIO(img.data()))
