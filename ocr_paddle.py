@@ -241,9 +241,7 @@ def ocr_point_to_str(result, x_box=15, y_box=10):
             if index == 0:
                 max_x = x2
                 min_x = x1
-                min_y = y2 - y1
             min_x = min(x1, min_x)
-            min_y = min(y2 - y1, min_y)
             max_x = max(x2, max_x)
             data_boxes.append([x1, y1, x2, y2, x2 - x1, y2 - y1])
         content = ""
