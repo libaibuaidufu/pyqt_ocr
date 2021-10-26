@@ -15,7 +15,6 @@ import numpy as np
 from PIL import Image
 from paddleocr import PaddleOCR
 
-# VERSION = __version__
 VERSION = "paddleocr_offline_v1"
 BASE_DIR = os.path.expanduser("~/.paddleocr/")
 
