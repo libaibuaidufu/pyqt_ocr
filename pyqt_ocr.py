@@ -120,7 +120,7 @@ class OcrWidget(QWidget):
     def set_text_content(self):
         if self.is_add:
             value = self.textEdit.toPlainText()
-            data = value + self.screenshot.content
+            data = value + '\n' + self.screenshot.content
         else:
             data = self.screenshot.content
         self.textEdit.setText(data)
