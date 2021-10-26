@@ -213,7 +213,6 @@ def ocr_to_str(resp_json):
         elif word_num > last_num + 3:
             content += "\n" + word
         else:
-            # content += "1"
             content += word
 
         if word[-1] in (".", ":", "。"):
