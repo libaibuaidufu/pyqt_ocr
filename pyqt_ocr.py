@@ -316,7 +316,7 @@ class UpdateConfig(QWidget):
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
@@ -418,12 +418,9 @@ class UpdateConfig(QWidget):
             vbox.addLayout(hbox)
             self.setLayout(vbox)
 
-            self.lang_box = lang_box
-            self.auto_warp_group = auto_warp_group
-            self.font_btn = font_btn
-
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn
         except:
             traceback.print_exc()
 
