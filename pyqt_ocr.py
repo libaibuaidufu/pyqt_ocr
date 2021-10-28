@@ -9,8 +9,8 @@ from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
     QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton, QInputDialog
 
-from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url, \
-    MODEL_URLS, DEFAULT_MODEL_VERSION
+from ocr_paddle import VERSION, BASE_DIR, MODEL_URLS, DEFAULT_MODEL_VERSION
+from ocr_paddle import get_content, init_paddleocr, get_model_config, confirm_model_dir_url, maybe_download
 
 
 def resource_path(relative_path):
@@ -124,11 +124,11 @@ class OcrWidget(QWidget):
         content = self.textEdit.toPlainText() if self.is_add else ''
         for path_index, img_path in enumerate(directory[0]):
             if path_index == 0 and content == "":
-                content += get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
+                content += get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
             elif self.is_warp:
-                content += "\n" + get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
+                content += "\n" + get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
             else:
-                content += get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
+                content += get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
         self.textEdit.setText(content)
 
     def click_btn(self):
@@ -197,9 +197,10 @@ class OcrWidget(QWidget):
     def download_path(self, model, lang):
         model_config = get_model_config(self.MODEL_VERSION, model, lang)
         if model == 'cls':
-            model_path, _ = confirm_model_dir_url(None, self.ocr_path / model, model_config['url'])
+            model_path, url = confirm_model_dir_url(None, self.ocr_path / model, model_config['url'])
         else:
-            model_path, _ = confirm_model_dir_url(None, self.ocr_path / model / lang, model_config['url'])
+            model_path, url = confirm_model_dir_url(None, self.ocr_path / model / lang, model_config['url'])
+        maybe_download(model_path, url)
         return model_path
 
 
@@ -243,7 +244,8 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(img_byte, self.OcrWidget.ocr,x_box=self.OcrWidget.x_pad_num,y_box=self.OcrWidget.y_pad_num)
+            self.content = get_content(img_byte, self.OcrWidget.ocr, x_box=self.OcrWidget.x_pad_num,
+                                       y_box=self.OcrWidget.y_pad_num)
             self.content_single.emit()
 
         self.close()
@@ -503,7 +505,6 @@ class UpdateConfig(QWidget):
             self.config.set("paddleocr", "WARP", self.config_warp)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
             self.config.set("paddleocr", "Y_PAD", self.y_pad_num)
-
             lang_box_value = self.lang_box.currentText()
             self.config.set("paddleocr", "LANG", lang_box_value)
             if lang_box_value != self.lang:

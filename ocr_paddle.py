@@ -9,12 +9,13 @@ import io
 import os.path
 import re
 import sys
+import tarfile
 import traceback
 
 import numpy as np
 from PIL import Image
 from PyQt5.QtCore import QByteArray
-from paddleocr import PaddleOCR
+from paddleocr import PaddleOCR, download_with_progressbar
 
 VERSION = "paddleocr_offline_v1"
 BASE_DIR = os.path.expanduser("~/.paddleocr/")
@@ -153,6 +154,8 @@ MODEL_URLS = {
 
 
 def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=''):
+    if lang == 'ch_server':
+        lang = 'ch'
     if all([cls_model_dir, det_model_dir, rec_model_dir]):
         ocr = PaddleOCR(use_angle_cls=True, lang=lang,
                         use_gpu=False, cls_model_dir=cls_model_dir, det_model_dir=det_model_dir,
@@ -161,7 +164,6 @@ def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=
         ocr = PaddleOCR(use_angle_cls=True, lang=lang,
                         use_gpu=False)
     return ocr
-
 
 def get_content(img, ocr, x_box=15, y_box=10):
     try:
@@ -240,9 +242,7 @@ def ocr_point_to_str(result, x_box=15, y_box=10):
         if isinstance(y_box, str):
             y_box = int(y_box)
         min_x = 0
-        min_y = 0
         max_x = 0
-        max_y = 0
         data_boxes = []
         for index, line in enumerate(result):
             point_list = line.get("text_region")
@@ -313,3 +313,33 @@ def confirm_model_dir_url(model_dir, default_model_dir, default_url):
 
 def is_link(s):
     return s is not None and s.startswith('http')
+
+
+def maybe_download(model_storage_directory, url):
+    # using custom model
+    tar_file_name_list = [
+        'inference.pdiparams', 'inference.pdiparams.info', 'inference.pdmodel'
+    ]
+    if not os.path.exists(
+            os.path.join(model_storage_directory, 'inference.pdiparams')
+    ) or not os.path.exists(
+        os.path.join(model_storage_directory, 'inference.pdmodel')):
+        assert url.endswith('.tar'), 'Only supports tar compressed package'
+        tmp_path = os.path.join(model_storage_directory, url.split('/')[-1])
+        print('download {} to {}'.format(url, tmp_path))
+        os.makedirs(model_storage_directory, exist_ok=True)
+        download_with_progressbar(url, tmp_path)
+        with tarfile.open(tmp_path, 'r') as tarObj:
+            for member in tarObj.getmembers():
+                filename = None
+                for tar_file_name in tar_file_name_list:
+                    if tar_file_name in member.name:
+                        filename = tar_file_name
+                if filename is None:
+                    continue
+                file = tarObj.extractfile(member)
+                with open(
+                        os.path.join(model_storage_directory, filename),
+                        'wb') as f:
+                    f.write(file.read())
+        os.remove(tmp_path)
