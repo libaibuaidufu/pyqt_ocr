@@ -7,7 +7,7 @@ import traceback
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
-    QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton
+    QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton, QInputDialog
 
 from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url, \
     MODEL_URLS, DEFAULT_MODEL_VERSION
@@ -46,6 +46,8 @@ class OcrWidget(QWidget):
         super(OcrWidget, self).__init__()
         self.is_add = False
         self.is_warp = False
+        self.x_pad_num = 15
+        self.y_pad_num = 10
         self.config_path = 'config.ini'
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
@@ -122,11 +124,11 @@ class OcrWidget(QWidget):
         content = self.textEdit.toPlainText() if self.is_add else ''
         for path_index, img_path in enumerate(directory[0]):
             if path_index == 0 and content == "":
-                content += get_content(img_path, self.ocr)
+                content += get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
             elif self.is_warp:
-                content += "\n" + get_content(img_path, self.ocr)
+                content += "\n" + get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
             else:
-                content += get_content(img_path, self.ocr)
+                content += get_content(img_path, self.ocr,x_box=self.x_pad_num,y_box=self.y_pad_num)
         self.textEdit.setText(content)
 
     def click_btn(self):
@@ -162,7 +164,9 @@ class OcrWidget(QWidget):
                 f.write(f'REC_PATH = {rec_path}\n')
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12\n')
-                f.write('WARP = 否')
+                f.write('WARP = 否\n')
+                f.write('X_PAD = 15\n')
+                f.write('Y_PAD = 10\n')
 
     def read_config(self):
         if not os.path.isfile(self.config_path):
@@ -186,6 +190,8 @@ class OcrWidget(QWidget):
             self.is_warp = True
         else:
             self.is_warp = False
+        self.x_pad_num = paddleocr['X_PAD']
+        self.y_pad_num = paddleocr['Y_PAD']
         return self.ocr
 
     def download_path(self, model, lang):
@@ -237,7 +243,7 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(img_byte, self.OcrWidget.ocr)
+            self.content = get_content(img_byte, self.OcrWidget.ocr,x_box=self.OcrWidget.x_pad_num,y_box=self.OcrWidget.y_pad_num)
             self.content_single.emit()
 
         self.close()
@@ -312,15 +318,30 @@ class UpdateConfig(QWidget):
         self.cls_path = self.paddleocr.get('CLS_PATH')
         self.det_path = self.paddleocr.get('DET_PATH')
         self.rec_path = self.paddleocr.get('REC_PATH')
+        self.x_pad_num = self.paddleocr.get("X_PAD", str(15))
+        self.y_pad_num = self.paddleocr.get("Y_PAD", str(10))
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn = self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
         btn.clicked[bool].connect(func)
         return btn
+
+    def click_btn_x_or_y(self):
+        sender = self.sender()
+        if sender == self.x_btn:
+            text, ok = QInputDialog.getInt(self, '修改X轴偏差', '请输入X轴偏差偏差范围：', value=int(self.x_pad_num), min=0)
+            if ok:
+                self.x_pad_num = str(text)
+                self.x_btn.setText(f"x轴：{self.x_pad_num}")
+        elif sender == self.y_btn:
+            text, ok = QInputDialog.getInt(self, '修改Y轴偏差', '请输入Y轴偏差偏差范围：', value=int(self.y_pad_num), min=0)
+            if ok:
+                self.y_pad_num = str(text)
+                self.y_btn.setText(f"y轴：{self.y_pad_num}")
 
     def init_ui(self):
         try:
@@ -364,6 +385,12 @@ class UpdateConfig(QWidget):
                 group_warp_no.click()
             auto_warp_group.buttonClicked.connect(self.rbclicked)
 
+            xy_pad = QLabel("轴向偏差范围")
+            x_btn = self.set_push_button('修改X轴偏差', self.click_btn_x_or_y)
+            x_btn.setText(f"x轴：{self.x_pad_num}")
+            y_btn = self.set_push_button('修改Y轴偏差', self.click_btn_x_or_y)
+            y_btn.setText(f"y轴：{self.y_pad_num}")
+
             font_size = QLabel('字体设置')
             font_btn = self.set_push_button(
                 f"字体：{self.paddleocr.get('FONT')}  大小：{self.paddleocr.get('FONT_SIZE')}" or '字体修改', self.click_btn_font)
@@ -385,12 +412,20 @@ class UpdateConfig(QWidget):
             hbox_warp.addWidget(group_warp_no)
             hbox_warp.addStretch(1)
 
+            hbox_xy_pad = QHBoxLayout()
+            # hbox_xy_pad.addWidget(x_pad)
+            hbox_xy_pad.addWidget(x_btn)
+            # hbox_xy_pad.addWidget(y_pad)
+            hbox_xy_pad.addWidget(y_btn)
+            hbox_xy_pad.addStretch(1)
+
             grid_dict = {
                 lang: hbox_lang,
                 cls: cls_file_btn,
                 det: det_file_btn,
                 rec: rec_file_btn,
                 auto_warp: hbox_warp,
+                xy_pad: hbox_xy_pad,
                 font_size: hbox_font,
                 author: author_edit,
                 github_url: github_url_edit,
@@ -419,7 +454,7 @@ class UpdateConfig(QWidget):
 
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
-            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn
         except:
             traceback.print_exc()
 
@@ -466,6 +501,8 @@ class UpdateConfig(QWidget):
                 self.config.set("paddleocr", "FONT_SIZE", str(self.font.pointSize()))
                 self.OcrWidget.set_font(self.font)
             self.config.set("paddleocr", "WARP", self.config_warp)
+            self.config.set("paddleocr", "X_PAD", self.x_pad_num)
+            self.config.set("paddleocr", "Y_PAD", self.y_pad_num)
 
             lang_box_value = self.lang_box.currentText()
             self.config.set("paddleocr", "LANG", lang_box_value)

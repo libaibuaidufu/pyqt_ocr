@@ -163,7 +163,7 @@ def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=
     return ocr
 
 
-def get_content(img, ocr):
+def get_content(img, ocr, x_box=15, y_box=10):
     try:
         if isinstance(img, QByteArray):
             img = np.array(Image.open(io.BytesIO(img.data())))
@@ -181,7 +181,7 @@ def get_content(img, ocr):
                 'confidence': float(score),
                 'text_region': dt_boxes[dno].astype(np.int).tolist()
             })
-        return ocr_point_to_str(rec_res_final)
+        return ocr_point_to_str(rec_res_final, x_box, y_box)
     except:
         traceback.print_exc()
         return "识别程序出错了！"
@@ -233,7 +233,12 @@ def ocr_point_to_str(result, x_box=15, y_box=10):
     """
     新版本 利用 矩形点位 拼接文字
     """
+
     try:
+        if isinstance(x_box, str):
+            x_box = int(x_box)
+        if isinstance(y_box, str):
+            y_box = int(y_box)
         min_x = 0
         min_y = 0
         max_x = 0
