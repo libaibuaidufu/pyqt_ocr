@@ -4,7 +4,6 @@ import pathlib
 import sys
 import traceback
 
-# import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
