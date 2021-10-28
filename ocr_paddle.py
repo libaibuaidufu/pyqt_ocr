@@ -13,6 +13,7 @@ import traceback
 
 import numpy as np
 from PIL import Image
+from PyQt5.QtCore import QByteArray
 from paddleocr import PaddleOCR
 
 VERSION = "paddleocr_offline_v1"
@@ -164,7 +165,12 @@ def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=
 
 def get_content(img, ocr):
     try:
-        img = np.array(Image.open(io.BytesIO(img.data())))
+        if isinstance(img, QByteArray):
+            img = np.array(Image.open(io.BytesIO(img.data())))
+        elif isinstance(img, str):
+            img = np.array(Image.open(img))
+        else:
+            return "识别程序出错了！"
         dt_boxes, rec_res = ocr(img, cls=True)
         dt_num = len(dt_boxes)
         rec_res_final = []

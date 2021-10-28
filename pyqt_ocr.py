@@ -4,14 +4,20 @@ import pathlib
 import sys
 import traceback
 
-import keyboard
+# import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
-from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QAction, QMenu, QSystemTrayIcon, \
-    QHBoxLayout, QLabel, QLineEdit, QGridLayout, QFontDialog, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
+    QGridLayout, QFontDialog, QComboBox, QFileDialog
 
 from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url, \
     MODEL_URLS, DEFAULT_MODEL_VERSION
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 class QPixmap2QByteArray(object):
@@ -32,21 +38,17 @@ class QPixmap2QByteArray(object):
         return byte_array
 
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
-
-
 class OcrWidget(QWidget):
     oksignal_content = pyqtSignal()
     oksignal_update_config = pyqtSignal()
 
     def __init__(self):
+        # QApplication.setQuitOnLastWindowClosed(False)  # 禁止默认的closed方法，只能使用qapp.quit()的方法退出程序
         super(OcrWidget, self).__init__()
         self.is_add = False
+        self.is_warp = False
         self.config_path = 'config.ini'
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
         self.lang_dict = dict(中文='ch', 中文服务端版='ch_server', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan',
                               中文繁体='chinese_cht', 泰卢固文='te', 卡纳达文='ka', 泰米尔文='ta', 拉丁文='latin', 阿拉伯字母='arabic',
@@ -64,8 +66,12 @@ class OcrWidget(QWidget):
             font = QFont(self.FONT, int(self.FONT_SIZE))
         self.textEdit.setFont(font)
 
+    def set_push_button(self, name, func):
+        btn = QPushButton(name, self)
+        btn.clicked[bool].connect(func)
+        return btn
+
     def init_ui(self):
-        # 窗口大小设置为600*500
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowTitle("飞桨识别离线版")
         self.resize(400, 300)
@@ -73,22 +79,20 @@ class OcrWidget(QWidget):
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
-        self.btn = QPushButton('飞桨识别', self, clicked=self.click_btn)
-        self.btn3 = QPushButton('追加文本', self, clicked=self.click_btn3)
-        self.btn_copy = QPushButton('复制文本', self, clicked=self.click_btn_copy)
-        self.btn4 = QPushButton('修改配置', self, clicked=self.click_btn4)
-        self.btn5 = QPushButton('字体修改', self, clicked=self.click_btn5)
-
-        self.btn3.setCheckable(True)
-        # self.btn.clicked.connect(self.click_btn)
-        # self.btn.setShortcut('F4')  # 设置快捷键
-        hbox.addWidget(self.btn)
-        hbox.addWidget(self.btn3)
-        hbox.addWidget(self.btn_copy)
-        hbox.addWidget(self.btn5)
-        hbox.addWidget(self.btn4)
+        ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
+        ocr_btn.setShortcut('F4')  # 设置快捷键
+        add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
+        add_text_btn.setCheckable(True)
+        btn_list = [
+            ocr_btn,
+            self.set_push_button('上传文件', self.click_btn_file),
+            add_text_btn,
+            self.set_push_button('复制文本', self.click_btn_copy),
+            self.set_push_button('修改配置', self.click_btn_config)
+        ]
+        for btn in btn_list:
+            hbox.addWidget(btn)
         hbox.addStretch(1)
-
         vbox = QVBoxLayout()
         self.textEdit = QTextEdit(self)
         self.textEdit.setObjectName("textEdit")
@@ -97,30 +101,15 @@ class OcrWidget(QWidget):
         self.setLayout(vbox)
         self.oksignal_content.connect(lambda: self.set_text_content())
         self.oksignal_update_config.connect(lambda: self.read_config())
-        keyboard.add_hotkey('F4', self.btn.click)
-
-        # self.addSystemTray()  # 设置系统托盘
-
-    def addSystemTray(self):
-        minimizeAction = QAction("Mi&nimize", self, triggered=self.hide)
-        maximizeAction = QAction("Ma&ximize", self, triggered=self.showMaximized)
-        restoreAction = QAction("&Restore", self, triggered=self.showNormal)
-        quitAction = QAction("&Quit", self, triggered=self.close)
-        self.trayIconMenu = QMenu(self)
-        self.trayIconMenu.addAction(minimizeAction)
-        self.trayIconMenu.addAction(maximizeAction)
-        self.trayIconMenu.addAction(restoreAction)
-        self.trayIconMenu.addSeparator()
-        self.trayIconMenu.addAction(quitAction)
-        self.trayIcon = QSystemTrayIcon(self)
-        self.trayIcon.setIcon(QIcon("image\logo.ico"))
-        self.trayIcon.setContextMenu(self.trayIconMenu)
-        self.trayIcon.show()
+        # keyboard.add_hotkey('F5', ocr_btn.click)
 
     def set_text_content(self):
         if self.is_add:
             value = self.textEdit.toPlainText()
-            data = value + '\n' + self.screenshot.content
+            if self.is_warp:
+                data = value + '\n' + self.screenshot.content
+            else:
+                data = value + self.screenshot.content
         else:
             data = self.screenshot.content
         self.textEdit.setText(data)
@@ -128,32 +117,34 @@ class OcrWidget(QWidget):
         self.showNormal()
         self.click_btn_copy()
 
+    def click_btn_file(self):
+        directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory="C:/",
+                                                 filter="All Files (*);;JPEG Files(*.jpg);;PNG Files(*.png)")
+        content = self.textEdit.toPlainText() if self.is_add else ''
+        for path_index, img_path in enumerate(directory[0]):
+            if path_index == 0 and content == "":
+                content += get_content(img_path, self.ocr)
+            elif self.is_warp:
+                content += "\n" + get_content(img_path, self.ocr)
+            else:
+                content += get_content(img_path, self.ocr)
+        self.textEdit.setText(content)
+
     def click_btn(self):
         self.showMinimized()
         self.screenshot = ScreenShotsWin(self.oksignal_content, self)
         # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.screenshot.showFullScreen()
 
-    def click_btn3(self):
+    def click_btn_add(self):
         if self.is_add:
             self.is_add = False
         else:
             self.is_add = True
 
-    def click_btn4(self):
+    def click_btn_config(self):
         self.update_config = UpdateConfig(self.oksignal_update_config, self)
         self.update_config.show()
-
-    def click_btn5(self):
-        font, isok = QFontDialog.getFont(QFont(self.FONT, int(self.FONT_SIZE)), self)
-        if isok:
-            self.FONT = str(font.family())
-            self.FONT_SIZE = str(font.pointSize())
-            self.config.set("paddleocr", "FONT", self.FONT)
-            self.config.set("paddleocr", "FONT_SIZE", self.FONT_SIZE)
-            with open(self.config_path, "w+", encoding='utf8') as f:
-                self.config.write(f)
-            self.set_font(font)
 
     def click_btn_copy(self):
         value = self.textEdit.toPlainText()
@@ -171,7 +162,8 @@ class OcrWidget(QWidget):
                 f.write(f'DET_PATH = {det_path}\n')
                 f.write(f'REC_PATH = {rec_path}\n')
                 f.write('FONT = Arial\n')
-                f.write('FONT_SIZE = 12')
+                f.write('FONT_SIZE = 12\n')
+                f.write('WARP = 否')
 
     def read_config(self):
         if not os.path.isfile(self.config_path):
@@ -186,10 +178,15 @@ class OcrWidget(QWidget):
         cls_path = paddleocr['CLS_PATH']
         det_path = paddleocr['DET_PATH']
         rec_path = paddleocr['REC_PATH']
+        WARP = paddleocr['WARP']
         self.FONT = paddleocr['FONT']
         self.FONT_SIZE = paddleocr["FONT_SIZE"]
         self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), cls_model_dir=cls_path, det_model_dir=det_path,
                                   rec_model_dir=rec_path)
+        if WARP == "是":
+            self.is_warp = True
+        else:
+            self.is_warp = False
         return self.ocr
 
     def download_path(self, model, lang):
@@ -305,6 +302,7 @@ class UpdateConfig(QWidget):
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.OcrWidget = OcrWidget
 
+        self.font = ''
         self.cls_path = ''
         self.det_path = ''
         self.rec_path = ''
@@ -318,48 +316,49 @@ class UpdateConfig(QWidget):
         self.setWindowIcon(QIcon(image_path))
         self.init_ui()
 
-    def btn_cls_choose_file(self):
-        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
-        self.cls_file_btn.setText(self.cls_path)
-
-    def btn_det_choose_file(self):
-        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('DET_PATH') or "C:/")  # 起始路径
-        self.det_file_btn.setText(self.det_path)
-
-    def btn_rec_choose_file(self):
-        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('REC_PATH') or "C:/")  # 起始路径
-        self.rec_file_btn.setText(self.rec_path)
+    def set_push_button(self, name, func):
+        btn = QPushButton(name, self)
+        btn.clicked[bool].connect(func)
+        return btn
 
     def init_ui(self):
         lang = QLabel('识别语言：')
         cls = QLabel('cls模型路径：')
         det = QLabel('det模型路径：')
         rec = QLabel('rec模型路径：')
+        auto_warp = QLabel('自动换行：')
+        font_size = QLabel('字体设置：')
         author = QLabel('作者：')
         github_url = QLabel('github：')
         paddleocr_github_url = QLabel('paddleocr:')
-
         self.lang_Box = QComboBox()
+        self.auto_warp_box = QComboBox()
 
-        self.cls_file_btn = QPushButton(self.paddleocr.get('CLS_PATH') or '选择cls模型路径', self,
-                                        clicked=self.btn_cls_choose_file)
-        self.det_file_btn = QPushButton(self.paddleocr.get('DET_PATH') or '选择det模型路径', self,
-                                        clicked=self.btn_det_choose_file)
-        self.rec_file_btn = QPushButton(self.paddleocr.get('REC_PATH') or '选择rec模型路径', self,
-                                        clicked=self.btn_rec_choose_file)
+        self.font_btn = self.set_push_button(
+            f"字体：{self.paddleocr.get('FONT')}  大小：{self.paddleocr.get('FONT_SIZE')}" or '字体修改', self.click_btn_font)
+        self.cls_file_btn = self.set_push_button(self.paddleocr.get('CLS_PATH') or '选择cls模型路径',
+                                                 self.btn_cls_choose_file)
+        self.det_file_btn = self.set_push_button(self.paddleocr.get('DET_PATH') or '选择det模型路径',
+                                                 self.btn_det_choose_file)
+        self.rec_file_btn = self.set_push_button(self.paddleocr.get('REC_PATH') or '选择rec模型路径',
+                                                 self.btn_rec_choose_file)
         self.author_Edit = QLineEdit()
         self.github_url_Edit = QLineEdit()
         self.paddleocr_github_url_Edit = QLineEdit()
+
         # 设置默认值
         for key in self.OcrWidget.lang_dict.keys():
             self.lang_Box.addItem(key)
         # self.lang_Box.setCurrentIndex(list(self.OcrWidget.lang_dict.keys()).index(self.paddleocr.get('LANG')))
         self.lang_Box.setCurrentText(self.paddleocr.get('LANG', '中文'))
 
+        self.auto_warp_box.addItem('否')
+        self.auto_warp_box.addItem('是')
+        self.auto_warp_box.setCurrentText(self.paddleocr.get('WARP', '否'))
+
         self.author_Edit.setText("libaibuaidufu")
         self.github_url_Edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
         self.paddleocr_github_url_Edit.setText("https://github.com/PaddlePaddle/PaddleOCR")
-        # self.secret_key_Edit2.setDisabled(True)
 
         grid = QGridLayout()
         grid.setSpacing(10)
@@ -368,6 +367,8 @@ class UpdateConfig(QWidget):
             cls: self.cls_file_btn,
             det: self.det_file_btn,
             rec: self.rec_file_btn,
+            auto_warp: self.auto_warp_box,
+            font_size: self.font_btn,
             author: self.author_Edit,
             github_url: self.github_url_Edit,
             paddleocr_github_url: self.paddleocr_github_url_Edit
@@ -380,17 +381,40 @@ class UpdateConfig(QWidget):
 
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
-        self.btn = QPushButton('保存', self, clicked=self.save_config)
-        self.reset_btn = QPushButton('恢复默认', self, clicked=self.reset_config)
+        btn = self.set_push_button('保存', self.save_config)
+        reset_btn = self.set_push_button('恢复默认', self.reset_config)
+
         vbox.addLayout(grid)
         hbox.addStretch(1)
-        hbox.addWidget(self.reset_btn)
-        hbox.addWidget(self.btn)
+        hbox.addWidget(reset_btn)
+        hbox.addWidget(btn)
         vbox.addLayout(hbox)
         self.setLayout(vbox)
 
         self.setGeometry(300, 300, 350, 300)
         self.setWindowTitle('修改OCR配置')
+
+    def btn_cls_choose_file(self):
+        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
+        self.cls_file_btn.setText(self.cls_path)
+
+    def btn_det_choose_file(self):
+        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('DET_PATH') or "C:/")  # 起始路径
+        self.det_file_btn.setText(self.det_path)
+
+    def btn_rec_choose_file(self):
+        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('REC_PATH') or "C:/")  # 起始路径
+        self.rec_file_btn.setText(self.rec_path)
+
+    def click_btn_font(self):
+        font_name = self.paddleocr.get('FONT')
+        font_size = self.paddleocr.get('FONT_SIZE')
+        font, isok = QFontDialog.getFont(QFont(font_name, int(font_size)), self)
+        if isok:
+            self.font = font
+            font_name = str(self.font.family())
+            font_size = str(self.font.pointSize())
+            self.font_btn.setText(f"字体：{font_name}，大小：{font_size}")
 
     def reset_config(self):
         if os.path.isfile(self.config_path):
@@ -401,6 +425,12 @@ class UpdateConfig(QWidget):
 
     def save_config(self):
         try:
+            if self.font:
+                self.config.set("paddleocr", "FONT", str(self.font.family()))
+                self.config.set("paddleocr", "FONT_SIZE", str(self.font.pointSize()))
+                self.OcrWidget.set_font(self.font)
+            self.config.set("paddleocr", "WARP", self.auto_warp_box.currentText())
+
             self.config.set("paddleocr", "LANG", self.lang_Box.currentText())
             if self.lang_Box.currentText() != self.LANG:
                 lang = self.OcrWidget.lang_dict.get(self.lang_Box.currentText())
