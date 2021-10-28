@@ -8,7 +8,7 @@ import traceback
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
-    QGridLayout, QFontDialog, QComboBox, QFileDialog
+    QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton
 
 from ocr_paddle import get_content, init_paddleocr, get_model_config, VERSION, BASE_DIR, confirm_model_dir_url, \
     MODEL_URLS, DEFAULT_MODEL_VERSION
@@ -85,7 +85,7 @@ class OcrWidget(QWidget):
         add_text_btn.setCheckable(True)
         btn_list = [
             ocr_btn,
-            self.set_push_button('上传文件', self.click_btn_file),
+            self.set_push_button('图片识别', self.click_btn_file),
             add_text_btn,
             self.set_push_button('复制文本', self.click_btn_copy),
             self.set_push_button('修改配置', self.click_btn_config)
@@ -303,14 +303,16 @@ class UpdateConfig(QWidget):
         self.OcrWidget = OcrWidget
 
         self.font = ''
-        self.cls_path = ''
-        self.det_path = ''
-        self.rec_path = ''
+
         self.config = configparser.ConfigParser()
         self.config_path = 'config.ini'
         self.config.read(self.config_path, encoding='utf8')
         self.paddleocr = self.config["paddleocr"]
-        self.LANG = self.paddleocr.get('LANG')
+        self.lang = self.paddleocr.get('LANG')
+        self.config_warp = self.paddleocr.get('WARP', '否')
+        self.cls_path = self.paddleocr.get('CLS_PATH')
+        self.det_path = self.paddleocr.get('DET_PATH')
+        self.rec_path = self.paddleocr.get('REC_PATH')
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
@@ -322,77 +324,115 @@ class UpdateConfig(QWidget):
         return btn
 
     def init_ui(self):
-        lang = QLabel('识别语言：')
-        cls = QLabel('cls模型路径：')
-        det = QLabel('det模型路径：')
-        rec = QLabel('rec模型路径：')
-        auto_warp = QLabel('自动换行：')
-        font_size = QLabel('字体设置：')
-        author = QLabel('作者：')
-        github_url = QLabel('github：')
-        paddleocr_github_url = QLabel('paddleocr:')
-        self.lang_Box = QComboBox()
-        self.auto_warp_box = QComboBox()
+        try:
+            # 默认配置
+            author = QLabel('作者')
+            author_edit = QLineEdit()
+            author_edit.setText("libaibuaidufu")
 
-        self.font_btn = self.set_push_button(
-            f"字体：{self.paddleocr.get('FONT')}  大小：{self.paddleocr.get('FONT_SIZE')}" or '字体修改', self.click_btn_font)
-        self.cls_file_btn = self.set_push_button(self.paddleocr.get('CLS_PATH') or '选择cls模型路径',
-                                                 self.btn_cls_choose_file)
-        self.det_file_btn = self.set_push_button(self.paddleocr.get('DET_PATH') or '选择det模型路径',
-                                                 self.btn_det_choose_file)
-        self.rec_file_btn = self.set_push_button(self.paddleocr.get('REC_PATH') or '选择rec模型路径',
-                                                 self.btn_rec_choose_file)
-        self.author_Edit = QLineEdit()
-        self.github_url_Edit = QLineEdit()
-        self.paddleocr_github_url_Edit = QLineEdit()
+            github_url = QLabel('github')
+            github_url_edit = QLineEdit()
+            github_url_edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
 
-        # 设置默认值
-        for key in self.OcrWidget.lang_dict.keys():
-            self.lang_Box.addItem(key)
-        # self.lang_Box.setCurrentIndex(list(self.OcrWidget.lang_dict.keys()).index(self.paddleocr.get('LANG')))
-        self.lang_Box.setCurrentText(self.paddleocr.get('LANG', '中文'))
+            paddleocr_github_url = QLabel('paddleocr')
+            paddleocr_github_url_edit = QLineEdit()
+            paddleocr_github_url_edit.setText("https://github.com/PaddlePaddle/PaddleOCR")
 
-        self.auto_warp_box.addItem('否')
-        self.auto_warp_box.addItem('是')
-        self.auto_warp_box.setCurrentText(self.paddleocr.get('WARP', '否'))
+            lang = QLabel('识别语言')
+            lang_box = QComboBox()
+            for key in self.OcrWidget.lang_dict.keys():
+                lang_box.addItem(key)
+            lang_box.setCurrentText(self.paddleocr.get('LANG', '中文'))
 
-        self.author_Edit.setText("libaibuaidufu")
-        self.github_url_Edit.setText("https://github.com/libaibuaidufu/pyqt_ocr")
-        self.paddleocr_github_url_Edit.setText("https://github.com/PaddlePaddle/PaddleOCR")
+            cls = QLabel('cls模型路径')
+            cls_file_btn = self.set_push_button(self.cls_path or '选择cls模型路径', self.btn_cls_choose_file)
 
-        grid = QGridLayout()
-        grid.setSpacing(10)
-        grid_dict = {
-            lang: self.lang_Box,
-            cls: self.cls_file_btn,
-            det: self.det_file_btn,
-            rec: self.rec_file_btn,
-            auto_warp: self.auto_warp_box,
-            font_size: self.font_btn,
-            author: self.author_Edit,
-            github_url: self.github_url_Edit,
-            paddleocr_github_url: self.paddleocr_github_url_Edit
-        }
-        index = 0
-        for key, value in grid_dict.items():
-            grid.addWidget(key, index + 1, 0)
-            grid.addWidget(value, index + 1, 1)
-            index += 1
+            det = QLabel('det模型路径')
+            det_file_btn = self.set_push_button(self.det_path or '选择det模型路径', self.btn_det_choose_file)
 
-        vbox = QVBoxLayout()
-        hbox = QHBoxLayout()
-        btn = self.set_push_button('保存', self.save_config)
-        reset_btn = self.set_push_button('恢复默认', self.reset_config)
+            rec = QLabel('rec模型路径')
+            rec_file_btn = self.set_push_button(self.rec_path or '选择rec模型路径', self.btn_rec_choose_file)
 
-        vbox.addLayout(grid)
-        hbox.addStretch(1)
-        hbox.addWidget(reset_btn)
-        hbox.addWidget(btn)
-        vbox.addLayout(hbox)
-        self.setLayout(vbox)
+            auto_warp = QLabel('自动换行')
+            auto_warp_group = QButtonGroup(self)
+            group_warp_yes = QRadioButton('是', self)
+            group_warp_no = QRadioButton('否', self)
+            auto_warp_group.addButton(group_warp_yes, 1)
+            auto_warp_group.addButton(group_warp_no, 0)
+            if self.config_warp == "是":
+                group_warp_yes.click()
+            else:
+                group_warp_no.click()
+            auto_warp_group.buttonClicked.connect(self.rbclicked)
 
-        self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('修改OCR配置')
+            font_size = QLabel('字体设置')
+            font_btn = self.set_push_button(
+                f"字体：{self.paddleocr.get('FONT')}  大小：{self.paddleocr.get('FONT_SIZE')}" or '字体修改', self.click_btn_font)
+
+            # 布局
+            grid = QGridLayout()
+            grid.setSpacing(10)
+
+            hbox_lang = QHBoxLayout()
+            hbox_lang.addWidget(lang_box)
+            hbox_lang.addStretch(1)
+
+            hbox_font = QHBoxLayout()
+            hbox_font.addWidget(font_btn)
+            hbox_font.addStretch(1)
+
+            hbox_warp = QHBoxLayout()
+            hbox_warp.addWidget(group_warp_yes)
+            hbox_warp.addWidget(group_warp_no)
+            hbox_warp.addStretch(1)
+
+            grid_dict = {
+                lang: hbox_lang,
+                cls: cls_file_btn,
+                det: det_file_btn,
+                rec: rec_file_btn,
+                auto_warp: hbox_warp,
+                font_size: hbox_font,
+                author: author_edit,
+                github_url: github_url_edit,
+                paddleocr_github_url: paddleocr_github_url_edit
+            }
+            index = 0
+            for key, value in grid_dict.items():
+                grid.addWidget(key, index + 1, 0)
+                if isinstance(value, QHBoxLayout):
+                    grid.addLayout(value, index + 1, 1)
+                else:
+                    grid.addWidget(value, index + 1, 1)
+                index += 1
+
+            vbox = QVBoxLayout()
+            hbox = QHBoxLayout()
+            btn = self.set_push_button('保存', self.save_config)
+            reset_btn = self.set_push_button('恢复默认', self.reset_config)
+
+            vbox.addLayout(grid)
+            hbox.addStretch(1)
+            hbox.addWidget(reset_btn)
+            hbox.addWidget(btn)
+            vbox.addLayout(hbox)
+            self.setLayout(vbox)
+
+            self.lang_box = lang_box
+            self.auto_warp_group = auto_warp_group
+            self.font_btn = font_btn
+
+            self.setGeometry(300, 300, 350, 300)
+            self.setWindowTitle('修改OCR配置')
+        except:
+            traceback.print_exc()
+
+    def rbclicked(self):
+        sender = self.sender()
+        if self.auto_warp_group.checkedId() == 1:
+            self.config_warp = '是'
+        else:
+            self.config_warp = '否'
 
     def btn_cls_choose_file(self):
         self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
@@ -429,11 +469,12 @@ class UpdateConfig(QWidget):
                 self.config.set("paddleocr", "FONT", str(self.font.family()))
                 self.config.set("paddleocr", "FONT_SIZE", str(self.font.pointSize()))
                 self.OcrWidget.set_font(self.font)
-            self.config.set("paddleocr", "WARP", self.auto_warp_box.currentText())
+            self.config.set("paddleocr", "WARP", self.config_warp)
 
-            self.config.set("paddleocr", "LANG", self.lang_Box.currentText())
-            if self.lang_Box.currentText() != self.LANG:
-                lang = self.OcrWidget.lang_dict.get(self.lang_Box.currentText())
+            lang_box_value = self.lang_box.currentText()
+            self.config.set("paddleocr", "LANG", lang_box_value)
+            if lang_box_value != self.lang:
+                lang = self.OcrWidget.lang_dict.get(lang_box_value)
                 if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['rec'].keys():
                     if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['det'].keys():
                         det_lang = lang
