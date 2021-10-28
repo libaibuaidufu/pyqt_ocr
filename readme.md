@@ -3,7 +3,10 @@
 ### 离线版环境及pyinstaller打包
 
 文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
-
+###### 2021-10-28 更新
+1. 增加自动换行设置
+2. 增加上传图片识别，可以多选，但是无法保证顺序。因此单选然后依次追加比较准确。
+3. 可以截图识别加图片上传识别结合。
 ###### 2021-10-25 更新
 1. 优化结构
 2. 优化了text、box合并方法
