@@ -80,7 +80,8 @@ class ScreenShotsWin(QWidget):
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
             self.content = get_content(img_byte, self.OcrWidget.ocr, x_box=self.OcrWidget.x_pad_num,
-                                       y_box=self.OcrWidget.y_pad_num, save_folder=self.OcrWidget.structure_path)
+                                       y_box=self.OcrWidget.y_pad_num, num_box=self.OcrWidget.num_box,
+                                       save_folder=self.OcrWidget.structure_path)
             self.content_single.emit()
 
         self.close()
@@ -149,6 +150,7 @@ class OcrWidget(QWidget):
         self.use_model = False
         self.x_pad_num = 15
         self.y_pad_num = 10
+        self.num_box = 0.5
         self.config_path = 'config.ini'
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
@@ -222,7 +224,7 @@ class OcrWidget(QWidget):
                                                  filter="All Files (*);;JPEG Files(*.jpg);;PNG Files(*.png)")
         content = self.textEdit.toPlainText() if self.is_add else ''
         for path_index, img_path in enumerate(directory[0]):
-            text = get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num,
+            text = get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num, num_box=self.num_box,
                                save_folder=self.structure_path)
             if path_index == 0 and content == "":
                 content += text
@@ -307,6 +309,7 @@ class OcrWidget(QWidget):
 
         self.x_pad_num = paddleocr['X_PAD']
         self.y_pad_num = paddleocr['Y_PAD']
+        self.num_box = paddleocr['NUM_BOX']
         if self.use_model:
             self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), is_table=self.is_table,
                                       cls_model_dir=cls_path,
@@ -345,7 +348,7 @@ class UpdateConfig(QWidget):
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group = self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group, self.num_box_btn = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
@@ -365,10 +368,10 @@ class UpdateConfig(QWidget):
                 self.y_pad_num = str(text)
                 self.y_btn.setText(f"y轴：{self.y_pad_num}")
         elif sender == self.num_box_btn:
-            text, ok = QInputDialog.getDouble(self, '修改误差率', '请输入大于多少的误差率：', value=float(self.num_box), min=0,max=1)
+            text, ok = QInputDialog.getDouble(self, '修改误差率', '请输入大于多少的误差率：', value=float(self.num_box), min=0, max=1)
             if ok:
-                self.y_pad_num = str(text)
-                self.y_btn.setText(f"y轴：{self.num_box}")
+                self.num_box = str(text)
+                self.num_box_btn.setText(f'识别率低于{self.num_box}丢弃')
 
     def init_ui(self):
         try:
@@ -402,6 +405,9 @@ class UpdateConfig(QWidget):
             else:
                 group_table_no.click()
             table_group.buttonClicked.connect(self.rbclicked)
+
+            num_box = QLabel("识别率")
+            num_box_btn = self.set_push_button(f'识别率低于{self.num_box}丢弃', self.click_btn_x_or_y)
 
             structure = QLabel('表格路径')
             structure_file_btn = self.set_push_button(self.structure_path or '选择表格识别文件保存路径',
@@ -446,9 +452,6 @@ class UpdateConfig(QWidget):
             y_btn = self.set_push_button('修改Y轴偏差', self.click_btn_x_or_y)
             y_btn.setText(f"y轴：{self.y_pad_num}")
 
-            num_box = QLabel("识别率")
-            num_box_btn = self.set_push_button(f'识别率低于{self.num_box}丢弃', self.click_btn_x_or_y)
-
             font_size = QLabel('字体设置')
             font_btn = self.set_push_button(
                 f"字体：{self.paddleocr.get('FONT')}  大小：{self.paddleocr.get('FONT_SIZE')}" or '字体修改', self.click_btn_font)
@@ -490,6 +493,7 @@ class UpdateConfig(QWidget):
             grid_dict = {
                 lang: hbox_lang,
                 table: hbox_table,
+                num_box: num_box_btn,
                 structure: structure_file_btn,
                 use_custom_model: hbox_model,
                 cls: cls_file_btn,
@@ -497,7 +501,6 @@ class UpdateConfig(QWidget):
                 rec: rec_file_btn,
                 auto_warp: hbox_warp,
                 xy_pad: hbox_xy_pad,
-                num_box: num_box_btn,
                 font_size: hbox_font,
                 author: author_edit,
                 github_url: github_url_edit,
@@ -526,7 +529,7 @@ class UpdateConfig(QWidget):
 
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
-            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group,num_box_btn
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group, num_box_btn
         except:
             traceback.print_exc()
 
@@ -597,6 +600,7 @@ class UpdateConfig(QWidget):
                 self.config.set("paddleocr", "FONT_SIZE", str(self.font.pointSize()))
                 self.OcrWidget.set_font(self.font)
             self.config.set("paddleocr", "WARP", self.config_warp)
+            self.config.set("paddleocr", "NUM_BOX", self.num_box)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
             self.config.set("paddleocr", "Y_PAD", self.y_pad_num)
             self.config.set("paddleocr", "LANG", self.lang_box.currentText())

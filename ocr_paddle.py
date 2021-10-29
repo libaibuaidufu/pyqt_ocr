@@ -41,7 +41,7 @@ def init_paddleocr(lang='ch', is_table=False, cls_model_dir='', det_model_dir=''
     return ocr
 
 
-def get_content(img, ocr, x_box=15, y_box=10, save_folder=r'c:\表格'):
+def get_content(img, ocr, x_box=15, y_box=10, num_box=0.5, save_folder=r'c:\表格'):
     try:
         if isinstance(ocr, PPStructure):
 
