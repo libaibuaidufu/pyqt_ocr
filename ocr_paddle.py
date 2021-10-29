@@ -6,184 +6,101 @@
 """
 
 import io
-import os.path
+import json
+import os
+import pathlib
 import re
-import sys
-import tarfile
 import traceback
+import uuid
+from datetime import datetime
 
+import cv2
 import numpy as np
 from PIL import Image
 from PyQt5.QtCore import QByteArray
-from paddleocr import PaddleOCR, download_with_progressbar
-
-VERSION = "paddleocr_offline_v1"
-BASE_DIR = os.path.expanduser("~/.paddleocr/")
-
-DEFAULT_MODEL_VERSION = 'PP-OCR'
-MODEL_URLS = {
-    'PP-OCRv2': {
-        'det': {
-            'ch': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/PP-OCRv2/chinese/ch_PP-OCRv2_det_infer.tar',
-            },
-        },
-        'rec': {
-            'ch': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/PP-OCRv2/chinese/ch_PP-OCRv2_rec_infer.tar',
-                'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
-            }
-        }
-    },
-    DEFAULT_MODEL_VERSION: {
-        'det': {
-            'ch': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_det_infer.tar',
-            },
-            'en': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/en_ppocr_mobile_v2.0_det_infer.tar',
-            },
-            'structure': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/table/en_ppocr_mobile_v2.0_table_det_infer.tar'
-            },
-            'ch_server': {
-                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_det_infer.tar'
-            }
-        },
-        'rec': {
-            'ch': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
-            },
-            'ch_server': {
-                'url': 'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_server_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/ppocr_keys_v1.txt'
-            },
-            'en': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/en_number_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/en_dict.txt'
-            },
-            'french': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/french_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/french_dict.txt'
-            },
-            'german': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/german_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/german_dict.txt'
-            },
-            'korean': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/korean_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/korean_dict.txt'
-            },
-            'japan': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/japan_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/japan_dict.txt'
-            },
-            'chinese_cht': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/chinese_cht_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/chinese_cht_dict.txt'
-            },
-            'ta': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/ta_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/ta_dict.txt'
-            },
-            'te': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/te_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/te_dict.txt'
-            },
-            'ka': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/ka_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/ka_dict.txt'
-            },
-            'latin': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/latin_ppocr_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/latin_dict.txt'
-            },
-            'arabic': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/arabic_ppocr_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/arabic_dict.txt'
-            },
-            'cyrillic': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/cyrillic_ppocr_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/cyrillic_dict.txt'
-            },
-            'devanagari': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/multilingual/devanagari_ppocr_mobile_v2.0_rec_infer.tar',
-                'dict_path': './ppocr/utils/dict/devanagari_dict.txt'
-            },
-            'structure': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/table/en_ppocr_mobile_v2.0_table_rec_infer.tar',
-                'dict_path': 'ppocr/utils/dict/table_dict.txt'
-            }
-        },
-        'cls': {
-            'ch': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_cls_infer.tar',
-            }
-        },
-        'table': {
-            'en': {
-                'url':
-                    'https://paddleocr.bj.bcebos.com/dygraph_v2.0/table/en_ppocr_mobile_v2.0_table_structure_infer.tar',
-                'dict_path': 'ppocr/utils/dict/table_structure_dict.txt'
-            }
-        }
-    }
-}
+from paddleocr import PaddleOCR, PPStructure, save_structure_res, draw_structure_result
 
 
-def init_paddleocr(lang='ch', cls_model_dir='', det_model_dir='', rec_model_dir=''):
-    if lang == 'ch_server':
-        lang = 'ch'
-    if all([cls_model_dir, det_model_dir, rec_model_dir]):
-        ocr = PaddleOCR(use_angle_cls=True, lang=lang,
-                        use_gpu=False, cls_model_dir=cls_model_dir, det_model_dir=det_model_dir,
-                        rec_model_dir=rec_model_dir)
+def init_paddleocr(lang='ch', is_table=False, cls_model_dir='', det_model_dir='', rec_model_dir=''):
+    print(lang)
+    if is_table:
+        if all([cls_model_dir, det_model_dir, rec_model_dir]):
+            ocr = PPStructure(show_log=False, use_gpu=False, table_model_dir=cls_model_dir, det_model_dir=det_model_dir,
+                              rec_model_dir=rec_model_dir, lang=lang)
+        else:
+            ocr = PPStructure(show_log=False, use_gpu=False, lang=lang)
     else:
-        ocr = PaddleOCR(use_angle_cls=True, lang=lang,
-                        use_gpu=False)
+        if all([cls_model_dir, det_model_dir, rec_model_dir]):
+            ocr = PaddleOCR(show_log=False, use_angle_cls=True, lang=lang,
+                            use_gpu=False, cls_model_dir=cls_model_dir, det_model_dir=det_model_dir,
+                            rec_model_dir=rec_model_dir)
+        else:
+            ocr = PaddleOCR(show_log=False, use_angle_cls=True, lang=lang,
+                            use_gpu=False)
+
     return ocr
 
-def get_content(img, ocr, x_box=15, y_box=10):
+
+def get_content(img, ocr, x_box=15, y_box=10, save_folder=r'c:\表格'):
     try:
-        if isinstance(img, QByteArray):
-            img = np.array(Image.open(io.BytesIO(img.data())))
-        elif isinstance(img, str):
-            img = np.array(Image.open(img))
+        if isinstance(ocr, PPStructure):
+
+            if isinstance(img, QByteArray):
+                image = Image.open(io.BytesIO(img.data()))
+                img = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+            elif isinstance(img, str):
+                image = Image.open(img).convert('RGB')
+                img = cv2.imread(img)
+            else:
+                return "读取出错！识别程序出错了！"
+            now = datetime.now().strftime('%Y_%m_%d_%H_%M_%S_')
+            img_path_name = now + str(uuid.uuid4())
+            result = ocr(img)
+            save_structure_res(result, save_folder, img_path_name)
+            res_text = pathlib.Path(save_folder) / img_path_name / 'res.txt'
+            rec_res_final = []
+            dt_boxes = []
+            content = ""
+            with open(res_text, 'r', encoding='utf8') as f:
+                for line in f.readlines():
+                    line_list = line.split('	', 1)
+                    if len(line_list[0]) < 10:
+                        continue
+                    text_num = line_list[-1].replace("('", "").replace(")", "").replace("\n", '').rsplit("',", 1)
+                    text = text_num[0]
+                    num = float(text_num[-1].strip())
+                    box = json.loads(line_list[0])
+                    rec_res_final.append({
+                        "text": text,
+                        'confidence': num,
+                        'text_region': [[int(box[0]), int(box[1])], [int(box[2]), int(box[3])], [int(box[4]), int(5)],
+                                        [int(box[6]), int(7)]]
+                    })
+                content = ocr_point_to_str(rec_res_final, x_box, y_box)
+
+            im_show = draw_structure_result(image, result, font_path='./fonts/simfang.ttf')
+            im_show = Image.fromarray(im_show)
+            im_show.save(pathlib.Path(save_folder) / img_path_name / 'result.jpg')
+            return content + '\n' + f'识别成功! 复制路径 \n {os.path.join(save_folder, img_path_name)} \n 打开查看'
         else:
-            return "识别程序出错了！"
-        dt_boxes, rec_res = ocr(img, cls=True)
-        dt_num = len(dt_boxes)
-        rec_res_final = []
-        for dno in range(dt_num):
-            text, score = rec_res[dno]
-            rec_res_final.append({
-                'text': text,
-                'confidence': float(score),
-                'text_region': dt_boxes[dno].astype(np.int).tolist()
-            })
-        return ocr_point_to_str(rec_res_final, x_box, y_box)
+            if isinstance(img, QByteArray):
+                image = Image.open(io.BytesIO(img.data()))
+            elif isinstance(img, str):
+                image = Image.open(img)
+            else:
+                return "读取出错！识别程序出错了！"
+            img = np.array(image)
+            dt_boxes, rec_res = ocr(img, cls=True)
+            dt_num = len(dt_boxes)
+            rec_res_final = []
+            for dno in range(dt_num):
+                text, score = rec_res[dno]
+                rec_res_final.append({
+                    'text': text,
+                    'confidence': float(score),
+                    'text_region': dt_boxes[dno].astype(np.int).tolist()
+                })
+            return ocr_point_to_str(rec_res_final, x_box, y_box)
     except:
         traceback.print_exc()
         return "识别程序出错了！"
@@ -231,7 +148,7 @@ def ocr_to_str(resp_json):
     return content.strip()
 
 
-def ocr_point_to_str(result, x_box=15, y_box=10):
+def ocr_point_to_str(result, x_box=15, y_box=10, confidence=0.5):
     """
     新版本 利用 矩形点位 拼接文字
     """
@@ -256,6 +173,8 @@ def ocr_point_to_str(result, x_box=15, y_box=10):
         content = ""
         last_box = []
         for box, data in zip(data_boxes, result):
+            if data.get("confidence") < confidence:
+                continue
             text = data.get("text")
             x1, y1, x2, y2, box_width, box_height = box
             if min_x in range(x1 - x_box, x1 + x_box):
@@ -274,72 +193,3 @@ def ocr_point_to_str(result, x_box=15, y_box=10):
     except:
         traceback.print_exc()
         return "识别程序出错了！"
-
-
-def get_model_config(version, model_type, lang):
-    """
-    下载 LANG 的模型地址
-    """
-    if version not in MODEL_URLS:
-        version = DEFAULT_MODEL_VERSION
-    if model_type not in MODEL_URLS[version]:
-        if model_type in MODEL_URLS[DEFAULT_MODEL_VERSION]:
-
-            version = DEFAULT_MODEL_VERSION
-        else:
-            sys.exit(-1)
-    if lang not in MODEL_URLS[version][model_type]:
-        if lang in MODEL_URLS[DEFAULT_MODEL_VERSION][model_type]:
-
-            version = DEFAULT_MODEL_VERSION
-        else:
-            sys.exit(-1)
-    return MODEL_URLS[version][model_type][lang]
-
-
-def confirm_model_dir_url(model_dir, default_model_dir, default_url):
-    """
-    获取路径 和地址
-    """
-    url = default_url
-    if model_dir is None or is_link(model_dir):
-        if is_link(model_dir):
-            url = model_dir
-        file_name = url.split('/')[-1][:-4]
-        model_dir = default_model_dir
-        model_dir = os.path.join(model_dir, file_name)
-    return model_dir, url
-
-
-def is_link(s):
-    return s is not None and s.startswith('http')
-
-
-def maybe_download(model_storage_directory, url):
-    # using custom model
-    tar_file_name_list = [
-        'inference.pdiparams', 'inference.pdiparams.info', 'inference.pdmodel'
-    ]
-    if not os.path.exists(
-            os.path.join(model_storage_directory, 'inference.pdiparams')
-    ) or not os.path.exists(
-        os.path.join(model_storage_directory, 'inference.pdmodel')):
-        assert url.endswith('.tar'), 'Only supports tar compressed package'
-        tmp_path = os.path.join(model_storage_directory, url.split('/')[-1])
-        print('download {} to {}'.format(url, tmp_path))
-        os.makedirs(model_storage_directory, exist_ok=True)
-        download_with_progressbar(url, tmp_path)
-        with tarfile.open(tmp_path, 'r') as tarObj:
-            for member in tarObj.getmembers():
-                filename = None
-                for tar_file_name in tar_file_name_list:
-                    if tar_file_name in member.name:
-                        filename = tar_file_name
-                if filename is None:
-                    continue
-                file = tarObj.extractfile(member)
-                with open(
-                        os.path.join(model_storage_directory, filename),
-                        'wb') as f:
-                    f.write(file.read())
-        os.remove(tmp_path)

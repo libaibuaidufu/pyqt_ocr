@@ -3,14 +3,16 @@ import os
 import pathlib
 import sys
 import traceback
+from os.path import exists
 
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
     QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton, QInputDialog
 
-from ocr_paddle import VERSION, BASE_DIR, MODEL_URLS, DEFAULT_MODEL_VERSION
-from ocr_paddle import get_content, init_paddleocr, get_model_config, confirm_model_dir_url, maybe_download
+from ocr_paddle import get_content, init_paddleocr
+
+BASE_DIR = os.path.expanduser("~/")
 
 
 def resource_path(relative_path):
@@ -37,6 +39,103 @@ class QPixmap2QByteArray(object):
         return byte_array
 
 
+class ScreenShotsWin(QWidget):
+    # 定义一个信号
+    oksignal = pyqtSignal()
+
+    def __init__(self, content_single, OcrWidget, is_precision=False):
+        super(ScreenShotsWin, self).__init__()
+        self.init_ui()
+        self.start = (0, 0)  # 开始坐标点
+        self.end = (0, 0)  # 结束坐标点
+        self.content_single = content_single
+        self.content = None
+        self.is_precision = is_precision
+        self.setCursor(QCursor(Qt.CrossCursor))
+        self.OcrWidget = OcrWidget
+
+    def init_ui(self):
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        self.setWindowOpacity(0.05)
+
+        self.oksignal.connect(lambda: self.screenshots(self.start, self.end))
+
+    def screenshots(self, start, end):
+        '''
+        截图功能
+        :param start:截图开始点
+        :param end:截图结束点
+        :return:
+        '''
+
+        x = min(start[0], end[0])
+        y = min(start[1], end[1])
+        width = abs(end[0] - start[0])
+        height = abs(end[1] - start[1])
+
+        des = QApplication.desktop()
+        screen = QApplication.primaryScreen()
+        if screen:
+            self.setWindowOpacity(0.0)
+            pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
+            img_byte = QPixmap2QByteArray()(pix.toImage())
+            self.content = get_content(img_byte, self.OcrWidget.ocr, x_box=self.OcrWidget.x_pad_num,
+                                       y_box=self.OcrWidget.y_pad_num, save_folder=self.OcrWidget.structure_path)
+            self.content_single.emit()
+
+        self.close()
+
+    def paintEvent(self, event):
+        '''
+        给出截图的辅助线
+        :param event:
+        :return:
+        '''
+        # logger.debug('开始画图')
+        x = self.start[0]
+        y = self.start[1]
+        w = self.end[0] - x
+        h = self.end[1] - y
+        pp = QPainter(self)
+        pp.begin(self)
+        pen = QPen(Qt.black, 1, Qt.SolidLine)
+        pp.setPen(pen)
+        pp.setBrush(QColor(200, 0, 0))
+        pp.drawRect(x, y, w, h)
+        pp.end()
+
+    def mousePressEvent(self, event):
+        # 点击左键开始选取截图区域
+        if event.button() == Qt.LeftButton:
+            self.start = (event.pos().x(), event.pos().y())
+            # logger.debug('开始坐标：%s', self.start)
+
+    def mouseReleaseEvent(self, event):
+        # 鼠标左键释放开始截图操作
+        if event.button() == Qt.LeftButton:
+
+            self.end = (event.pos().x(), event.pos().y())
+            # logger.debug('结束坐标：%s', self.end)
+            x = self.start[0]
+            y = self.start[1]
+            w = self.end[0] - x
+            h = self.end[1] - y
+            if w == 0 and h == 0:
+                self.close()
+            else:
+                self.oksignal.emit()
+            # logger.debug('信号提交')
+            # 进行重新绘制
+            self.update()
+
+    def mouseMoveEvent(self, event):
+        # 鼠标左键按下的同时移动鼠标绘制截图辅助线
+        if event.buttons() and Qt.LeftButton:
+            self.end = (event.pos().x(), event.pos().y())
+            # 进行重新绘制
+            self.update()
+
+
 class OcrWidget(QWidget):
     oksignal_content = pyqtSignal()
     oksignal_update_config = pyqtSignal()
@@ -46,16 +145,16 @@ class OcrWidget(QWidget):
         super(OcrWidget, self).__init__()
         self.is_add = False
         self.is_warp = False
+        self.is_table = False
+        self.use_model = False
         self.x_pad_num = 15
         self.y_pad_num = 10
         self.config_path = 'config.ini'
         # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
-        self.lang_dict = dict(中文='ch', 中文服务端版='ch_server', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan',
+        self.lang_dict = dict(中文='ch', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan',
                               中文繁体='chinese_cht', 泰卢固文='te', 卡纳达文='ka', 泰米尔文='ta', 拉丁文='latin', 阿拉伯字母='arabic',
                               斯拉夫字母='cyrillic', 梵文字母='devanagari')
-        self.MODEL_VERSION = 'PP-OCRv2'
-        self.ocr_path = pathlib.Path(BASE_DIR) / VERSION / 'ocr'
         self.read_config()
         self.init_ui()
         self.set_font()
@@ -119,16 +218,18 @@ class OcrWidget(QWidget):
         self.click_btn_copy()
 
     def click_btn_file(self):
-        directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory="C:/",
+        directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory=BASE_DIR,
                                                  filter="All Files (*);;JPEG Files(*.jpg);;PNG Files(*.png)")
         content = self.textEdit.toPlainText() if self.is_add else ''
         for path_index, img_path in enumerate(directory[0]):
+            text = get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num,
+                               save_folder=self.structure_path)
             if path_index == 0 and content == "":
-                content += get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
+                content += text
             elif self.is_warp:
-                content += "\n" + get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
+                content += "\n" + text
             else:
-                content += get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num)
+                content += text
         self.textEdit.setText(content)
 
     def click_btn(self):
@@ -153,20 +254,24 @@ class OcrWidget(QWidget):
 
     def reset_config(self):
         if not os.path.isfile(self.config_path):
-            cls_path = self.download_path('cls', 'ch')
-            det_path = self.download_path('det', 'ch')
-            rec_path = self.download_path('rec', 'ch')
+            STRUCTURE_PATH = pathlib.Path(BASE_DIR) / '表格'
+            if not exists(STRUCTURE_PATH):
+                os.mkdir(STRUCTURE_PATH)
             with open("config.ini", 'w', encoding='utf8') as f:
                 f.write('[paddleocr]\n')
                 f.write('LANG = 中文\n')
-                f.write(f'CLS_PATH = {cls_path}\n')
-                f.write(f'DET_PATH = {det_path}\n')
-                f.write(f'REC_PATH = {rec_path}\n')
+                f.write('TABLE = 关闭\n')
+                f.write('USE_MODEL = 关闭\n')
+                f.write(f'CLS_PATH = \n')
+                f.write(f'DET_PATH = \n')
+                f.write(f'REC_PATH = \n')
+                f.write(f'STRUCTURE_PATH = {STRUCTURE_PATH}\n')
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12\n')
-                f.write('WARP = 否\n')
+                f.write('WARP = 关闭\n')
                 f.write('X_PAD = 15\n')
                 f.write('Y_PAD = 10\n')
+                f.write('NUM_BOX = 0.5\n')
 
     def read_config(self):
         if not os.path.isfile(self.config_path):
@@ -178,127 +283,38 @@ class OcrWidget(QWidget):
         self.config.read(self.config_path, encoding='utf8')
         paddleocr = self.config["paddleocr"]
         lang = paddleocr['LANG']
+        table = paddleocr['TABLE']
+        use_model = paddleocr['USE_MODEL']
         cls_path = paddleocr['CLS_PATH']
         det_path = paddleocr['DET_PATH']
         rec_path = paddleocr['REC_PATH']
-        WARP = paddleocr['WARP']
+        warp = paddleocr['WARP']
+        self.structure_path = paddleocr['STRUCTURE_PATH']
         self.FONT = paddleocr['FONT']
         self.FONT_SIZE = paddleocr["FONT_SIZE"]
-        self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), cls_model_dir=cls_path, det_model_dir=det_path,
-                                  rec_model_dir=rec_path)
-        if WARP == "是":
+        if warp == "启动":
             self.is_warp = True
         else:
             self.is_warp = False
+        if use_model == "启动":
+            self.use_model = True
+        else:
+            self.use_model = False
+        if table == "启动":
+            self.is_table = True
+        else:
+            self.is_table = False
+
         self.x_pad_num = paddleocr['X_PAD']
         self.y_pad_num = paddleocr['Y_PAD']
-        return self.ocr
-
-    def download_path(self, model, lang):
-        model_config = get_model_config(self.MODEL_VERSION, model, lang)
-        if model == 'cls':
-            model_path, url = confirm_model_dir_url(None, self.ocr_path / model, model_config['url'])
+        if self.use_model:
+            self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), is_table=self.is_table,
+                                      cls_model_dir=cls_path,
+                                      det_model_dir=det_path,
+                                      rec_model_dir=rec_path)
         else:
-            model_path, url = confirm_model_dir_url(None, self.ocr_path / model / lang, model_config['url'])
-        maybe_download(model_path, url)
-        return model_path
-
-
-class ScreenShotsWin(QWidget):
-    # 定义一个信号
-    oksignal = pyqtSignal()
-
-    def __init__(self, content_single, OcrWidget, is_precision=False):
-        super(ScreenShotsWin, self).__init__()
-        self.init_ui()
-        self.start = (0, 0)  # 开始坐标点
-        self.end = (0, 0)  # 结束坐标点
-        self.content_single = content_single
-        self.content = None
-        self.is_precision = is_precision
-        self.setCursor(QCursor(Qt.CrossCursor))
-        self.OcrWidget = OcrWidget
-
-    def init_ui(self):
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.setWindowOpacity(0.05)
-
-        self.oksignal.connect(lambda: self.screenshots(self.start, self.end))
-
-    def screenshots(self, start, end):
-        '''
-        截图功能
-        :param start:截图开始点
-        :param end:截图结束点
-        :return:
-        '''
-
-        x = min(start[0], end[0])
-        y = min(start[1], end[1])
-        width = abs(end[0] - start[0])
-        height = abs(end[1] - start[1])
-
-        des = QApplication.desktop()
-        screen = QApplication.primaryScreen()
-        if screen:
-            self.setWindowOpacity(0.0)
-            pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
-            img_byte = QPixmap2QByteArray()(pix.toImage())
-            self.content = get_content(img_byte, self.OcrWidget.ocr, x_box=self.OcrWidget.x_pad_num,
-                                       y_box=self.OcrWidget.y_pad_num)
-            self.content_single.emit()
-
-        self.close()
-
-    def paintEvent(self, event):
-        '''
-        给出截图的辅助线
-        :param event:
-        :return:
-        '''
-        # logger.debug('开始画图')
-        x = self.start[0]
-        y = self.start[1]
-        w = self.end[0] - x
-        h = self.end[1] - y
-        pp = QPainter(self)
-        pp.begin(self)
-        pen = QPen(Qt.black, 1, Qt.SolidLine)
-        pp.setPen(pen)
-        pp.setBrush(QColor(200, 0, 0))
-        pp.drawRect(x, y, w, h)
-        pp.end()
-
-    def mousePressEvent(self, event):
-        # 点击左键开始选取截图区域
-        if event.button() == Qt.LeftButton:
-            self.start = (event.pos().x(), event.pos().y())
-            # logger.debug('开始坐标：%s', self.start)
-
-    def mouseReleaseEvent(self, event):
-        # 鼠标左键释放开始截图操作
-        if event.button() == Qt.LeftButton:
-
-            self.end = (event.pos().x(), event.pos().y())
-            # logger.debug('结束坐标：%s', self.end)
-            x = self.start[0]
-            y = self.start[1]
-            w = self.end[0] - x
-            h = self.end[1] - y
-            if w == 0 and h == 0:
-                self.close()
-            else:
-                self.oksignal.emit()
-            # logger.debug('信号提交')
-            # 进行重新绘制
-            self.update()
-
-    def mouseMoveEvent(self, event):
-        # 鼠标左键按下的同时移动鼠标绘制截图辅助线
-        if event.buttons() and Qt.LeftButton:
-            self.end = (event.pos().x(), event.pos().y())
-            # 进行重新绘制
-            self.update()
+            self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), is_table=self.is_table)
+        return self.ocr
 
 
 class UpdateConfig(QWidget):
@@ -316,16 +332,20 @@ class UpdateConfig(QWidget):
         self.config.read(self.config_path, encoding='utf8')
         self.paddleocr = self.config["paddleocr"]
         self.lang = self.paddleocr.get('LANG')
-        self.config_warp = self.paddleocr.get('WARP', '否')
+        self.config_warp = self.paddleocr.get('WARP', '关闭')
+        self.config_custom_model = self.paddleocr.get('USE_MODEL', '关闭')
+        self.config_table = self.paddleocr.get('TABLE', '关闭')
         self.cls_path = self.paddleocr.get('CLS_PATH')
         self.det_path = self.paddleocr.get('DET_PATH')
         self.rec_path = self.paddleocr.get('REC_PATH')
+        self.structure_path = self.paddleocr.get('STRUCTURE_PATH')
         self.x_pad_num = self.paddleocr.get("X_PAD", str(15))
         self.y_pad_num = self.paddleocr.get("Y_PAD", str(10))
+        self.num_box = self.paddleocr.get("NUM_BOX", str(0.5))
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn = self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
@@ -344,6 +364,11 @@ class UpdateConfig(QWidget):
             if ok:
                 self.y_pad_num = str(text)
                 self.y_btn.setText(f"y轴：{self.y_pad_num}")
+        elif sender == self.num_box_btn:
+            text, ok = QInputDialog.getDouble(self, '修改误差率', '请输入大于多少的误差率：', value=float(self.num_box), min=0,max=1)
+            if ok:
+                self.y_pad_num = str(text)
+                self.y_btn.setText(f"y轴：{self.num_box}")
 
     def init_ui(self):
         try:
@@ -366,22 +391,50 @@ class UpdateConfig(QWidget):
                 lang_box.addItem(key)
             lang_box.setCurrentText(self.paddleocr.get('LANG', '中文'))
 
-            cls = QLabel('cls模型路径')
-            cls_file_btn = self.set_push_button(self.cls_path or '选择cls模型路径', self.btn_cls_choose_file)
+            table = QLabel('识别表格')
+            table_group = QButtonGroup(self)
+            group_table_yes = QRadioButton('启动', self)
+            group_table_no = QRadioButton('关闭', self)
+            table_group.addButton(group_table_yes, 1)
+            table_group.addButton(group_table_no, 0)
+            if self.config_table == "启动":
+                group_table_yes.click()
+            else:
+                group_table_no.click()
+            table_group.buttonClicked.connect(self.rbclicked)
+
+            structure = QLabel('表格路径')
+            structure_file_btn = self.set_push_button(self.structure_path or '选择表格识别文件保存路径',
+                                                      self.btn_structure_choose_file)
+
+            use_custom_model = QLabel('自定义模型')
+            use_custom_model_group = QButtonGroup(self)
+            group_model_yes = QRadioButton('启动', self)
+            group_model_no = QRadioButton('关闭', self)
+            use_custom_model_group.addButton(group_model_yes, 1)
+            use_custom_model_group.addButton(group_model_no, 0)
+            if self.config_custom_model == "启动":
+                group_model_yes.click()
+            else:
+                group_model_no.click()
+            use_custom_model_group.buttonClicked.connect(self.rbclicked)
+
+            cls = QLabel('cls|table模型路径')
+            cls_file_btn = self.set_push_button(self.cls_path or '选择自定义cls|table模型路径', self.btn_cls_choose_file)
 
             det = QLabel('det模型路径')
-            det_file_btn = self.set_push_button(self.det_path or '选择det模型路径', self.btn_det_choose_file)
+            det_file_btn = self.set_push_button(self.det_path or '选择自定义det模型路径', self.btn_det_choose_file)
 
             rec = QLabel('rec模型路径')
-            rec_file_btn = self.set_push_button(self.rec_path or '选择rec模型路径', self.btn_rec_choose_file)
+            rec_file_btn = self.set_push_button(self.rec_path or '选择自定义rec模型路径', self.btn_rec_choose_file)
 
             auto_warp = QLabel('自动换行')
             auto_warp_group = QButtonGroup(self)
-            group_warp_yes = QRadioButton('是', self)
-            group_warp_no = QRadioButton('否', self)
+            group_warp_yes = QRadioButton('启动', self)
+            group_warp_no = QRadioButton('关闭', self)
             auto_warp_group.addButton(group_warp_yes, 1)
             auto_warp_group.addButton(group_warp_no, 0)
-            if self.config_warp == "是":
+            if self.config_warp == "启动":
                 group_warp_yes.click()
             else:
                 group_warp_no.click()
@@ -392,6 +445,9 @@ class UpdateConfig(QWidget):
             x_btn.setText(f"x轴：{self.x_pad_num}")
             y_btn = self.set_push_button('修改Y轴偏差', self.click_btn_x_or_y)
             y_btn.setText(f"y轴：{self.y_pad_num}")
+
+            num_box = QLabel("识别率")
+            num_box_btn = self.set_push_button(f'识别率低于{self.num_box}丢弃', self.click_btn_x_or_y)
 
             font_size = QLabel('字体设置')
             font_btn = self.set_push_button(
@@ -409,6 +465,16 @@ class UpdateConfig(QWidget):
             hbox_font.addWidget(font_btn)
             hbox_font.addStretch(1)
 
+            hbox_table = QHBoxLayout()
+            hbox_table.addWidget(group_table_yes)
+            hbox_table.addWidget(group_table_no)
+            hbox_table.addStretch(1)
+
+            hbox_model = QHBoxLayout()
+            hbox_model.addWidget(group_model_yes)
+            hbox_model.addWidget(group_model_no)
+            hbox_model.addStretch(1)
+
             hbox_warp = QHBoxLayout()
             hbox_warp.addWidget(group_warp_yes)
             hbox_warp.addWidget(group_warp_no)
@@ -423,11 +489,15 @@ class UpdateConfig(QWidget):
 
             grid_dict = {
                 lang: hbox_lang,
+                table: hbox_table,
+                structure: structure_file_btn,
+                use_custom_model: hbox_model,
                 cls: cls_file_btn,
                 det: det_file_btn,
                 rec: rec_file_btn,
                 auto_warp: hbox_warp,
                 xy_pad: hbox_xy_pad,
+                num_box: num_box_btn,
                 font_size: hbox_font,
                 author: author_edit,
                 github_url: github_url_edit,
@@ -456,28 +526,52 @@ class UpdateConfig(QWidget):
 
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
-            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group,num_box_btn
         except:
             traceback.print_exc()
 
     def rbclicked(self):
         sender = self.sender()
-        if self.auto_warp_group.checkedId() == 1:
-            self.config_warp = '是'
-        else:
-            self.config_warp = '否'
+        if sender == self.auto_warp_group:
+            if self.auto_warp_group.checkedId() == 1:
+                self.config_warp = '启动'
+            else:
+                self.config_warp = '关闭'
+        elif sender == self.use_custom_model_group:
+            if self.use_custom_model_group.checkedId() == 1:
+                self.config_custom_model = '启动'
+            else:
+                self.config_custom_model = '关闭'
+        elif sender == self.table_group:
+            if self.table_group.checkedId() == 1:
+                self.config_table = '启动'
+            else:
+                self.config_table = '关闭'
+
+    def btn_structure_choose_file(self):
+        structure_path = QFileDialog.getExistingDirectory(None, "选取文件夹",
+                                                          self.paddleocr.get('STRUCTURE_PATH') or BASE_DIR)  # 起始路径
+        if structure_path:
+            self.structure_path = structure_path
+            self.structure_file_btn.setText(self.structure_path)
 
     def btn_cls_choose_file(self):
-        self.cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or "C:/")  # 起始路径
-        self.cls_file_btn.setText(self.cls_path)
+        cls_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('CLS_PATH') or BASE_DIR)  # 起始路径
+        if cls_path:
+            self.cls_path = cls_path
+            self.cls_file_btn.setText(self.cls_path)
 
     def btn_det_choose_file(self):
-        self.det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('DET_PATH') or "C:/")  # 起始路径
-        self.det_file_btn.setText(self.det_path)
+        det_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('DET_PATH') or BASE_DIR)  # 起始路径
+        if det_path:
+            self.det_path = det_path
+            self.det_file_btn.setText(self.det_path)
 
     def btn_rec_choose_file(self):
-        self.rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('REC_PATH') or "C:/")  # 起始路径
-        self.rec_file_btn.setText(self.rec_path)
+        rec_path = QFileDialog.getExistingDirectory(None, "选取文件夹", self.paddleocr.get('REC_PATH') or BASE_DIR)  # 起始路径
+        if rec_path:
+            self.rec_path = rec_path
+            self.rec_file_btn.setText(self.rec_path)
 
     def click_btn_font(self):
         font_name = self.paddleocr.get('FONT')
@@ -505,22 +599,13 @@ class UpdateConfig(QWidget):
             self.config.set("paddleocr", "WARP", self.config_warp)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
             self.config.set("paddleocr", "Y_PAD", self.y_pad_num)
-            lang_box_value = self.lang_box.currentText()
-            self.config.set("paddleocr", "LANG", lang_box_value)
-            if lang_box_value != self.lang:
-                lang = self.OcrWidget.lang_dict.get(lang_box_value)
-                if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['rec'].keys():
-                    if lang in MODEL_URLS[DEFAULT_MODEL_VERSION]['det'].keys():
-                        det_lang = lang
-                    else:
-                        det_lang = 'en'
-                    self.config.set("paddleocr", "DET_PATH", self.OcrWidget.download_path('det', det_lang))
-                    self.config.set("paddleocr", "REC_PATH", self.OcrWidget.download_path('rec', lang))
-                    self.config.set("paddleocr", "CLS_PATH", self.OcrWidget.download_path('cls', 'ch'))
-            else:
-                self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else None
-                self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else None
-                self.config.set("paddleocr", "REC_PATH", self.rec_path) if self.rec_path else None
+            self.config.set("paddleocr", "LANG", self.lang_box.currentText())
+            self.config.set("paddleocr", "TABLE", self.config_table)
+            self.config.set("paddleocr", "USE_MODEL", self.config_custom_model)
+            self.config.set("paddleocr", "STRUCTURE_PATH", self.structure_path) if self.structure_path else ...
+            self.config.set("paddleocr", "CLS_PATH", self.cls_path) if self.cls_path else ...
+            self.config.set("paddleocr", "DET_PATH", self.det_path) if self.det_path else ...
+            self.config.set("paddleocr", "REC_PATH", self.rec_path) if self.rec_path else ...
             with open(self.config_path, "w+", encoding='utf8') as f:
                 self.config.write(f)
             self.oksignal_update_config.emit()
