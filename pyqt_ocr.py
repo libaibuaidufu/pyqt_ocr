@@ -518,8 +518,8 @@ class UpdateConfig(QWidget):
 
             grid_dict = {
                 lang: hbox_lang,
-                table: hbox_table,
                 num_box: num_box_btn,
+                table: hbox_table,
                 structure: structure_file_btn,
                 use_custom_model: hbox_model,
                 cls: cls_file_btn,
