@@ -5,6 +5,7 @@ import sys
 import traceback
 from os.path import exists
 
+import keyboard
 from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
@@ -154,8 +155,9 @@ class OcrWidget(QWidget):
         self.x_pad_num = 15
         self.y_pad_num = 10
         self.num_box = 0.5
+        self.hot_key_call = None
+        self.is_top = False
         self.config_path = 'config.ini'
-        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.clipboard = QApplication.clipboard()
         self.lang_dict = dict(中文='ch', 英文='en', 法文='french', 德文='german', 韩文='korean', 日文='japan',
                               中文繁体='chinese_cht', 泰卢固文='te', 卡纳达文='ka', 泰米尔文='ta', 拉丁文='latin', 阿拉伯字母='arabic',
@@ -163,6 +165,7 @@ class OcrWidget(QWidget):
         self.read_config()
         self.init_ui()
         self.set_font()
+        self.show()
 
         # https://stackoverflow.com/questions/56949297/how-to-fix-importerror-unable-to-find-qt5core-dll-on-path-after-pyinstaller-b
 
@@ -171,42 +174,25 @@ class OcrWidget(QWidget):
             font = QFont(self.FONT, int(self.FONT_SIZE))
         self.textEdit.setFont(font)
 
+    def set_hot_key(self, key):
+        if self.hot_key_call:
+            keyboard.remove_hotkey(self.hot_key_call)
+        self.hot_key_call = keyboard.add_hotkey(key, self.ocr_btn.click)
+
+    def set_top(self):
+        self.is_top = not self.is_top
+        if self.is_top:
+            self.setWindowTitle("飞桨识别离线版--置顶")
+            self.setWindowFlag(Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowTitle("飞桨识别离线版")
+            self.setWindowFlag(Qt.Widget)
+        self.show()
+
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
         btn.clicked[bool].connect(func)
         return btn
-
-    def init_ui(self):
-        # self.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("飞桨识别离线版")
-        self.resize(400, 300)
-        image_path = resource_path("image\logo.ico")
-        self.setWindowIcon(QIcon(image_path))
-
-        hbox = QHBoxLayout()
-        ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
-        ocr_btn.setShortcut('F4')  # 设置快捷键
-        add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
-        add_text_btn.setCheckable(True)
-        btn_list = [
-            ocr_btn,
-            self.set_push_button('图片识别', self.click_btn_file),
-            add_text_btn,
-            self.set_push_button('复制文本', self.click_btn_copy),
-            self.set_push_button('修改配置', self.click_btn_config)
-        ]
-        for btn in btn_list:
-            hbox.addWidget(btn)
-        hbox.addStretch(1)
-        vbox = QVBoxLayout()
-        self.textEdit = QTextEdit(self)
-        self.textEdit.setObjectName("textEdit")
-        vbox.addWidget(self.textEdit)
-        vbox.addLayout(hbox)
-        self.setLayout(vbox)
-        self.oksignal_content.connect(lambda: self.set_text_content())
-        self.oksignal_update_config.connect(lambda: self.read_config())
-        # keyboard.add_hotkey('F5', ocr_btn.click)
 
     def set_text_content(self):
         if isinstance(self.ocr, PPStructure):
@@ -231,6 +217,42 @@ class OcrWidget(QWidget):
             self.click_btn_copy()
         self.textEdit.setText(data)
         self.showNormal()
+
+    def init_ui(self):
+        self.setWindowTitle("飞桨识别离线版")
+        self.resize(400, 300)
+        image_path = resource_path("image\logo.ico")
+        self.setWindowIcon(QIcon(image_path))
+
+        hbox = QHBoxLayout()
+        self.ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
+        # self.ocr_btn.setShortcut('F4')  # 设置快捷键
+        add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
+        add_text_btn.setCheckable(True)
+        self.top_btn = self.set_push_button('置顶', self.set_top)
+        self.top_btn.setShortcut(self.top_key)
+        self.top_btn.hide()
+        btn_list = [
+            self.ocr_btn,
+            self.set_push_button('图片识别', self.click_btn_file),
+            add_text_btn,
+            self.set_push_button('复制文本', self.click_btn_copy),
+            self.top_btn,
+            self.set_push_button('修改配置', self.click_btn_config)
+        ]
+        for btn in btn_list:
+            hbox.addWidget(btn)
+        hbox.addStretch(1)
+        vbox = QVBoxLayout()
+        self.textEdit = QTextEdit(self)
+        self.textEdit.setObjectName("textEdit")
+        vbox.addWidget(self.textEdit)
+        vbox.addLayout(hbox)
+        self.setLayout(vbox)
+        self.oksignal_content.connect(lambda: self.set_text_content())
+        self.oksignal_update_config.connect(lambda: self.read_config())
+
+        self.set_hot_key(self.hot_key)
 
     def click_btn_file(self):
         directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory=BASE_DIR,
@@ -262,7 +284,6 @@ class OcrWidget(QWidget):
     def click_btn(self):
         self.showMinimized()
         self.screenshot = ScreenShotsWin(self.oksignal_content, self)
-        # self.screenshot.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.screenshot.showFullScreen()
 
     def click_btn_add(self):
@@ -300,6 +321,8 @@ class OcrWidget(QWidget):
                 f.write('X_PAD = 15\n')
                 f.write('Y_PAD = 10\n')
                 f.write('NUM_BOX = 0.5\n')
+                f.write('TOP = 关闭\n')
+                f.write('HOT_KEY = F4\n')
 
     def read_config(self):
         if not os.path.isfile(self.config_path):
@@ -317,6 +340,9 @@ class OcrWidget(QWidget):
         det_path = paddleocr['DET_PATH']
         rec_path = paddleocr['REC_PATH']
         warp = paddleocr['WARP']
+        self.top = paddleocr['TOP']
+        self.hot_key = paddleocr['HOT_KEY']
+        self.top_key = paddleocr['TOP_KEY']
         self.structure_path = paddleocr['STRUCTURE_PATH']
         self.FONT = paddleocr['FONT']
         self.FONT_SIZE = paddleocr["FONT_SIZE"]
@@ -336,6 +362,7 @@ class OcrWidget(QWidget):
         self.x_pad_num = paddleocr['X_PAD']
         self.y_pad_num = paddleocr['Y_PAD']
         self.num_box = paddleocr['NUM_BOX']
+
         if self.use_model:
             self.ocr = init_paddleocr(lang=self.lang_dict.get(lang, 'ch'), is_table=self.is_table,
                                       cls_model_dir=cls_path,
@@ -350,11 +377,15 @@ class UpdateConfig(QWidget):
 
     def __init__(self, oksignal_update_config, OcrWidget):
         super().__init__()
+        self.setWindowModality(Qt.ApplicationModal)
         self.oksignal_update_config = oksignal_update_config
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.OcrWidget = OcrWidget
 
         self.font = ''
+        self.set_hot_key = False
+        self.set_top_key = False
+        self.event_key = None
 
         self.config = configparser.ConfigParser()
         self.config_path = 'config.ini'
@@ -364,6 +395,8 @@ class UpdateConfig(QWidget):
         self.config_warp = self.paddleocr.get('WARP', '关闭')
         self.config_custom_model = self.paddleocr.get('USE_MODEL', '关闭')
         self.config_table = self.paddleocr.get('TABLE', '关闭')
+        self.config_hot_key = self.paddleocr.get("HOT_KEY", 'F4')
+        self.config_top_key = self.paddleocr.get("TOP_KEY", 'F5')
         self.cls_path = self.paddleocr.get('CLS_PATH')
         self.det_path = self.paddleocr.get('DET_PATH')
         self.rec_path = self.paddleocr.get('REC_PATH')
@@ -374,7 +407,7 @@ class UpdateConfig(QWidget):
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group, self.num_box_btn = self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group, self.num_box_btn, self.hot_key_btn, self.top_key_btn = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
@@ -394,10 +427,20 @@ class UpdateConfig(QWidget):
                 self.y_pad_num = str(text)
                 self.y_btn.setText(f"y轴：{self.y_pad_num}")
         elif sender == self.num_box_btn:
-            text, ok = QInputDialog.getDouble(self, '修改识别得分', '请输入保留大于多少的识别得分（0-1）：', value=float(self.num_box), min=0, max=1)
+            text, ok = QInputDialog.getDouble(self, '修改识别得分', '请输入保留大于多少的识别得分（0-1）：', value=float(self.num_box), min=0,
+                                              max=1)
             if ok:
                 self.num_box = str(text)
                 self.num_box_btn.setText(f'识别得分低于{self.num_box}丢弃')
+        elif sender == self.hot_key_btn:
+            # todo:通过按键检测直接设置快捷键，可以实现但是对应按键太多，太麻烦了
+            self.set_hot_key = True
+            # text, ok = QInputDialog.getText(self, '修改快捷键', '请输入快捷键：', text=self.config_hot_key)
+            # if ok:
+            #     self.config_hot_key = str(text)
+            #     self.hot_key_btn.setText(f'{self.config_hot_key}')
+        elif sender == self.top_key_btn:
+            self.set_top_key = True
 
     def init_ui(self):
         try:
@@ -432,8 +475,26 @@ class UpdateConfig(QWidget):
                 group_table_no.click()
             table_group.buttonClicked.connect(self.rbclicked)
 
+            # top = QLabel('置顶')
+            # top_group = QButtonGroup(self)
+            # group_top_yes = QRadioButton('启动', self)
+            # group_top_no = QRadioButton('关闭', self)
+            # top_group.addButton(group_top_yes, 1)
+            # top_group.addButton(group_top_no, 0)
+            # if self.config_top == "启动":
+            #     group_top_yes.click()
+            # else:
+            #     group_top_no.click()
+            # top_group.buttonClicked.connect(self.rbclicked)
+
             num_box = QLabel("识别得分")
             num_box_btn = self.set_push_button(f'识别得分低于{self.num_box}丢弃', self.click_btn_x_or_y)
+
+            hot_key_label = QLabel("截图快捷键")
+            hot_key_btn = self.set_push_button(f'{self.config_hot_key}', self.click_btn_x_or_y)
+
+            top_key_label = QLabel("置顶快捷键")
+            top_key_btn = self.set_push_button(f'{self.config_top_key}', self.click_btn_x_or_y)
 
             structure = QLabel('表格路径')
             structure_file_btn = self.set_push_button(self.structure_path or '选择表格识别文件保存路径',
@@ -494,6 +555,11 @@ class UpdateConfig(QWidget):
             hbox_font.addWidget(font_btn)
             hbox_font.addStretch(1)
 
+            # hbox_top = QHBoxLayout()
+            # hbox_top.addWidget(group_top_yes)
+            # hbox_top.addWidget(group_top_no)
+            # hbox_top.addStretch(1)
+
             hbox_table = QHBoxLayout()
             hbox_table.addWidget(group_table_yes)
             hbox_table.addWidget(group_table_no)
@@ -521,11 +587,14 @@ class UpdateConfig(QWidget):
                 num_box: num_box_btn,
                 table: hbox_table,
                 structure: structure_file_btn,
+                auto_warp: hbox_warp,
+                # top: hbox_top,
                 use_custom_model: hbox_model,
                 cls: cls_file_btn,
                 det: det_file_btn,
                 rec: rec_file_btn,
-                auto_warp: hbox_warp,
+                hot_key_label: hot_key_btn,
+                top_key_label: top_key_btn,
                 xy_pad: hbox_xy_pad,
                 font_size: hbox_font,
                 author: author_edit,
@@ -555,27 +624,35 @@ class UpdateConfig(QWidget):
 
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
-            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group, num_box_btn
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group, num_box_btn, hot_key_btn, top_key_btn
         except:
             traceback.print_exc()
 
     def rbclicked(self):
-        sender = self.sender()
-        if sender == self.auto_warp_group:
-            if self.auto_warp_group.checkedId() == 1:
-                self.config_warp = '启动'
-            else:
-                self.config_warp = '关闭'
-        elif sender == self.use_custom_model_group:
-            if self.use_custom_model_group.checkedId() == 1:
-                self.config_custom_model = '启动'
-            else:
-                self.config_custom_model = '关闭'
-        elif sender == self.table_group:
-            if self.table_group.checkedId() == 1:
-                self.config_table = '启动'
-            else:
-                self.config_table = '关闭'
+        try:
+            sender = self.sender()
+            if sender == self.auto_warp_group:
+                if self.auto_warp_group.checkedId() == 1:
+                    self.config_warp = '启动'
+                else:
+                    self.config_warp = '关闭'
+            elif sender == self.use_custom_model_group:
+                if self.use_custom_model_group.checkedId() == 1:
+                    self.config_custom_model = '启动'
+                else:
+                    self.config_custom_model = '关闭'
+            elif sender == self.table_group:
+                if self.table_group.checkedId() == 1:
+                    self.config_table = '启动'
+                else:
+                    self.config_table = '关闭'
+            elif sender == self.top_group:
+                if self.top_group.checkedId() == 1:
+                    self.config_top = '启动'
+                else:
+                    self.config_top = '关闭'
+        except:
+            traceback.print_exc()
 
     def btn_structure_choose_file(self):
         structure_path = QFileDialog.getExistingDirectory(None, "选取文件夹",
@@ -602,6 +679,27 @@ class UpdateConfig(QWidget):
             self.rec_path = rec_path
             self.rec_file_btn.setText(self.rec_path)
 
+    # 检测键盘回车按键
+    def keyPressEvent(self, event):
+        press_dict = {65: 'a', 66: 'b', 67: 'c', 68: 'd', 69: 'e', 70: 'f', 71: 'g', 72: 'h', 73: 'i', 74: 'j', 75: 'k',
+                      76: 'l', 77: 'm', 78: 'n', 79: 'o', 80: 'p', 81: 'q', 82: 'r', 83: 's', 84: 't', 85: 'u', 86: 'v',
+                      87: 'w', 88: 'x', 89: 'y', 90: 'z', 48: '0', 49: '1', 50: '2', 51: '3', 52: '4', 53: '5', 54: '6',
+                      55: '7', 56: '8', 57: '9', 16777264: 'F1', 16777265: 'F2', 16777266: 'F3', 16777267: 'F4',
+                      16777268: 'F5', 16777269: 'F6', 16777270: 'F7', 16777271: 'F8', 16777272: 'F9', 16777273: 'F10',
+                      16777274: 'F11', 16777275: 'F12'}
+        try:
+            if self.set_hot_key:
+                self.event_key = press_dict[event.key()]
+                self.hot_key_btn.setText(self.event_key)
+                self.config_hot_key = self.event_key
+
+            elif self.set_top_key:
+                self.event_key = press_dict[event.key()]
+                self.top_key_btn.setText(self.event_key)
+                self.config_top_key = self.event_key
+        except:
+            traceback.print_exc()
+
     def click_btn_font(self):
         font_name = self.paddleocr.get('FONT')
         font_size = self.paddleocr.get('FONT_SIZE')
@@ -625,6 +723,11 @@ class UpdateConfig(QWidget):
                 self.config.set("paddleocr", "FONT", str(self.font.family()))
                 self.config.set("paddleocr", "FONT_SIZE", str(self.font.pointSize()))
                 self.OcrWidget.set_font(self.font)
+            self.config.set("paddleocr", "HOT_KEY", self.config_hot_key)
+            self.OcrWidget.set_hot_key(self.config_hot_key)
+            self.config.set("paddleocr", "TOP_KEY", self.config_top_key)
+            # self.OcrWidget.set_top_key(self.config_top_key)
+            self.OcrWidget.top_btn.setShortcut(self.config_top_key)
             self.config.set("paddleocr", "WARP", self.config_warp)
             self.config.set("paddleocr", "NUM_BOX", self.num_box)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
@@ -648,5 +751,4 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setStyle('Fusion')  # 修改样式
     dbb = OcrWidget()
-    dbb.show()
     sys.exit(app.exec_())
