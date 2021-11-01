@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QByteArray, QBuffer, QIODevice
 from PyQt5.QtGui import QPainter, QIcon, QPixmap, QPen, QColor, QCursor, QFont
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QLabel, QLineEdit, \
     QGridLayout, QFontDialog, QComboBox, QFileDialog, QButtonGroup, QRadioButton, QInputDialog
+from paddleocr import PPStructure
 
 from ocr_paddle import get_content, init_paddleocr
 
@@ -79,6 +80,8 @@ class ScreenShotsWin(QWidget):
             self.setWindowOpacity(0.0)
             pix = screen.grabWindow(des.winId(), x, y, width, height)  # type:QPixmap
             img_byte = QPixmap2QByteArray()(pix.toImage())
+            self.close()
+            # todo:做一个提示消息框
             self.content = get_content(img_byte, self.OcrWidget.ocr, x_box=self.OcrWidget.x_pad_num,
                                        y_box=self.OcrWidget.y_pad_num, num_box=self.OcrWidget.num_box,
                                        save_folder=self.OcrWidget.structure_path)
@@ -206,33 +209,55 @@ class OcrWidget(QWidget):
         # keyboard.add_hotkey('F5', ocr_btn.click)
 
     def set_text_content(self):
-        if self.is_add:
-            value = self.textEdit.toPlainText()
-            if self.is_warp:
-                data = value + '\n' + self.screenshot.content
+        if isinstance(self.ocr, PPStructure):
+            if self.is_add:
+                value = self.textEdit.toPlainText()
+                if value:
+                    data = value + '\n' + self.screenshot.content
+                else:
+                    data = f'识别成功! 路径已经自动复制到剪贴板 \n {self.screenshot.content} '
             else:
-                data = value + self.screenshot.content
+                data = f'识别成功! 路径已经自动复制到剪贴板 \n {self.screenshot.content} '
+            self.click_btn_copy(self.screenshot.content)
         else:
-            data = self.screenshot.content
+            if self.is_add:
+                value = self.textEdit.toPlainText()
+                if self.is_warp:
+                    data = value + '\n' + self.screenshot.content
+                else:
+                    data = value + self.screenshot.content
+            else:
+                data = self.screenshot.content
+            self.click_btn_copy()
         self.textEdit.setText(data)
-        self.screenshot.close()
         self.showNormal()
-        self.click_btn_copy()
 
     def click_btn_file(self):
         directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory=BASE_DIR,
                                                  filter="All Files (*);;JPEG Files(*.jpg);;PNG Files(*.png)")
         content = self.textEdit.toPlainText() if self.is_add else ''
+        text = ''
         for path_index, img_path in enumerate(directory[0]):
             text = get_content(img_path, self.ocr, x_box=self.x_pad_num, y_box=self.y_pad_num, num_box=self.num_box,
                                save_folder=self.structure_path)
-            if path_index == 0 and content == "":
-                content += text
-            elif self.is_warp:
-                content += "\n" + text
+            if isinstance(self.ocr, PPStructure):
+                if path_index == 0 and content == "":
+                    content += f'识别成功! 路径已经自动复制到剪贴板 \n {text} '
+                else:
+                    content += "\n" + text
             else:
-                content += text
+                if path_index == 0 and content == "":
+                    content += text
+                elif self.is_warp:
+                    content += "\n" + text
+                else:
+                    content += text
         self.textEdit.setText(content)
+        self.showNormal()
+        if isinstance(self.ocr, PPStructure):
+            self.click_btn_copy(text)
+        else:
+            self.click_btn_copy()
 
     def click_btn(self):
         self.showMinimized()
@@ -250,8 +275,9 @@ class OcrWidget(QWidget):
         self.update_config = UpdateConfig(self.oksignal_update_config, self)
         self.update_config.show()
 
-    def click_btn_copy(self):
-        value = self.textEdit.toPlainText()
+    def click_btn_copy(self, value=None):
+        if not value:
+            value = self.textEdit.toPlainText()
         self.clipboard.setText(value)
 
     def reset_config(self):
