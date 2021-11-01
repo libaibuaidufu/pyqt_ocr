@@ -397,7 +397,7 @@ class UpdateConfig(QWidget):
             text, ok = QInputDialog.getDouble(self, '修改误差率', '请输入大于多少的误差率：', value=float(self.num_box), min=0, max=1)
             if ok:
                 self.num_box = str(text)
-                self.num_box_btn.setText(f'识别率低于{self.num_box}丢弃')
+                self.num_box_btn.setText(f'识别得分低于{self.num_box}丢弃')
 
     def init_ui(self):
         try:
@@ -432,8 +432,8 @@ class UpdateConfig(QWidget):
                 group_table_no.click()
             table_group.buttonClicked.connect(self.rbclicked)
 
-            num_box = QLabel("识别率")
-            num_box_btn = self.set_push_button(f'识别率低于{self.num_box}丢弃', self.click_btn_x_or_y)
+            num_box = QLabel("识别得分")
+            num_box_btn = self.set_push_button(f'识别得分低于{self.num_box}丢弃', self.click_btn_x_or_y)
 
             structure = QLabel('表格路径')
             structure_file_btn = self.set_push_button(self.structure_path or '选择表格识别文件保存路径',
