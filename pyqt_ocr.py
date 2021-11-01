@@ -321,7 +321,7 @@ class OcrWidget(QWidget):
                 f.write('X_PAD = 15\n')
                 f.write('Y_PAD = 10\n')
                 f.write('NUM_BOX = 0.5\n')
-                f.write('TOP = 关闭\n')
+                f.write('TOP_KEY = F5\n')
                 f.write('HOT_KEY = F4\n')
 
     def read_config(self):
@@ -340,7 +340,6 @@ class OcrWidget(QWidget):
         det_path = paddleocr['DET_PATH']
         rec_path = paddleocr['REC_PATH']
         warp = paddleocr['WARP']
-        self.top = paddleocr['TOP']
         self.hot_key = paddleocr['HOT_KEY']
         self.top_key = paddleocr['TOP_KEY']
         self.structure_path = paddleocr['STRUCTURE_PATH']
