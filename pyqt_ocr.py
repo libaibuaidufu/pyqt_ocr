@@ -394,7 +394,7 @@ class UpdateConfig(QWidget):
                 self.y_pad_num = str(text)
                 self.y_btn.setText(f"y轴：{self.y_pad_num}")
         elif sender == self.num_box_btn:
-            text, ok = QInputDialog.getDouble(self, '修改误差率', '请输入大于多少的误差率：', value=float(self.num_box), min=0, max=1)
+            text, ok = QInputDialog.getDouble(self, '修改识别得分', '请输入保留大于多少的识别得分（0-1）：', value=float(self.num_box), min=0, max=1)
             if ok:
                 self.num_box = str(text)
                 self.num_box_btn.setText(f'识别得分低于{self.num_box}丢弃')
