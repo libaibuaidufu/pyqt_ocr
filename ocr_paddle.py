@@ -53,29 +53,6 @@ def get_content(img, ocr, x_box=15, y_box=10, num_box=0.5, save_folder=r'c:\è¡¨æ
             img_path_name = now + str(uuid.uuid4())
             result = ocr(img)
             save_structure_res(result, save_folder, img_path_name)
-            # res_text = pathlib.Path(save_folder) / img_path_name / 'res.txt'
-            # rec_res_final = []
-            # dt_boxes = []
-            # content = ""
-            # with open(res_text, 'r', encoding='utf8') as f:
-            #     for line in f.readlines():
-            #         line_list = line.split('	', 1)
-            #         if len(line_list[0]) < 10:
-            #             continue
-            #         text_num = line_list[-1].replace("('", "").replace(")", "").replace("\n", '').rsplit("',", 1)
-            #         text = text_num[0]
-            #         num = float(text_num[-1].strip())
-            #         box = json.loads(line_list[0])
-            #         rec_res_final.append({
-            #             "text": text,
-            #             'confidence': num,
-            #             'text_region': [[int(box[0]), int(box[1])], [int(box[2]), int(box[3])], [int(box[4]), int(5)],
-            #                             [int(box[6]), int(7)]]
-            #         })
-            #     content = ocr_point_to_str(rec_res_final, x_box, y_box)
-            # im_show = draw_structure_result(image, result, font_path='./fonts/simfang.ttf')
-            # im_show = Image.fromarray(im_show)
-            # im_show.save(pathlib.Path(save_folder) / img_path_name / 'result.jpg')
             return os.path.join(save_folder, img_path_name)
         else:
             if isinstance(img, QByteArray):
