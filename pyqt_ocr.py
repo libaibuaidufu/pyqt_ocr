@@ -156,6 +156,7 @@ class OcrWidget(QWidget):
         self.y_pad_num = 10
         self.num_box = 0.5
         self.hot_key_call = None
+        self.top_key_call = None
         self.is_top = False
         self.config_path = 'config.ini'
         self.clipboard = QApplication.clipboard()
@@ -179,14 +180,19 @@ class OcrWidget(QWidget):
             keyboard.remove_hotkey(self.hot_key_call)
         self.hot_key_call = keyboard.add_hotkey(key, self.ocr_btn.click)
 
+    def set_top_key(self, key):
+        if self.top_key_call:
+            keyboard.remove_hotkey(self.top_key_call)
+        self.top_key_call = keyboard.add_hotkey(key, self.top_btn.click)
+
     def set_top(self):
         self.is_top = not self.is_top
         if self.is_top:
             self.setWindowTitle("飞桨识别离线版--置顶")
-            self.setWindowFlag(Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(Qt.WindowStaysOnTopHint)
         else:
             self.setWindowTitle("飞桨识别离线版")
-            self.setWindowFlag(Qt.Widget)
+            self.setWindowFlags(Qt.Widget)
         self.show()
 
     def set_push_button(self, name, func):
@@ -225,12 +231,12 @@ class OcrWidget(QWidget):
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
-        self.ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
-        # self.ocr_btn.setShortcut('F4')  # 设置快捷键
         add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
         add_text_btn.setCheckable(True)
+        self.ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
         self.top_btn = self.set_push_button('置顶', self.set_top)
-        self.top_btn.setShortcut(self.top_key)
+        # self.ocr_btn.setShortcut('F4')  # 设置快捷键 自带的 只能在程序选中时使用
+        # self.top_btn.setShortcut(self.top_key)
         self.top_btn.hide()
         btn_list = [
             self.ocr_btn,
@@ -252,7 +258,8 @@ class OcrWidget(QWidget):
         self.oksignal_content.connect(lambda: self.set_text_content())
         self.oksignal_update_config.connect(lambda: self.read_config())
 
-        self.set_hot_key(self.hot_key)
+        self.set_hot_key(self.hot_key)  # 利用keyboard 设置快捷键 全局的
+        self.set_top_key(self.top_key)
 
     def click_btn_file(self):
         directory = QFileDialog.getOpenFileNames(self, caption="选取多个文件", directory=BASE_DIR,
@@ -725,8 +732,7 @@ class UpdateConfig(QWidget):
             self.config.set("paddleocr", "HOT_KEY", self.config_hot_key)
             self.OcrWidget.set_hot_key(self.config_hot_key)
             self.config.set("paddleocr", "TOP_KEY", self.config_top_key)
-            # self.OcrWidget.set_top_key(self.config_top_key)
-            self.OcrWidget.top_btn.setShortcut(self.config_top_key)
+            self.OcrWidget.set_top_key(self.config_top_key)
             self.config.set("paddleocr", "WARP", self.config_warp)
             self.config.set("paddleocr", "NUM_BOX", self.num_box)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
