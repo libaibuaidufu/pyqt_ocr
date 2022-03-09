@@ -332,6 +332,7 @@ class OcrWidget(QWidget):
                 f.write('FONT = Arial\n')
                 f.write('FONT_SIZE = 12\n')
                 f.write('WARP = 关闭\n')
+                f.write('ADD = 关闭\n')
                 f.write('X_PAD = 15\n')
                 f.write('Y_PAD = 10\n')
                 f.write('NUM_BOX = 0.5\n')
