@@ -3,6 +3,10 @@
 ### 离线版环境及pyinstaller打包
 
 文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
+###### 2022-03-09 更新
+1. 增加自动追加设置
+2. 修复置顶bug
+3. 需要删除旧设置config.ini
 ###### 2021-11-01 更新
 1. 更新表格识别（表格识别模型200M左右，因此修改配置保存后，下载时间跟你的网速相关。）
 2. 优化截屏卡死
