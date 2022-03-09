@@ -231,8 +231,10 @@ class OcrWidget(QWidget):
         self.setWindowIcon(QIcon(image_path))
 
         hbox = QHBoxLayout()
-        add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
-        add_text_btn.setCheckable(True)
+        # add_text_btn = self.set_push_button('追加文本', self.click_btn_add)
+        # add_text_btn.setCheckable(True)
+        clear_text_btn = self.set_push_button('清空文本', self.click_btn_clear)
+
         self.ocr_btn = self.set_push_button('飞桨识别', self.click_btn)
         self.top_btn = self.set_push_button('置顶', self.set_top)
         # self.ocr_btn.setShortcut('F4')  # 设置快捷键 自带的 只能在程序选中时使用
@@ -241,7 +243,8 @@ class OcrWidget(QWidget):
         btn_list = [
             self.ocr_btn,
             self.set_push_button('图片识别', self.click_btn_file),
-            add_text_btn,
+            # add_text_btn,
+            clear_text_btn,
             self.set_push_button('复制文本', self.click_btn_copy),
             self.top_btn,
             self.set_push_button('修改配置', self.click_btn_config)
@@ -299,6 +302,10 @@ class OcrWidget(QWidget):
         else:
             self.is_add = True
 
+    def click_btn_clear(self):
+        self.textEdit.setText("")
+        # self.showNormal()
+
     def click_btn_config(self):
         self.update_config = UpdateConfig(self.oksignal_update_config, self)
         self.update_config.show()
@@ -347,6 +354,7 @@ class OcrWidget(QWidget):
         det_path = paddleocr['DET_PATH']
         rec_path = paddleocr['REC_PATH']
         warp = paddleocr['WARP']
+        add_text = paddleocr['ADD']
         self.hot_key = paddleocr['HOT_KEY']
         self.top_key = paddleocr['TOP_KEY']
         self.structure_path = paddleocr['STRUCTURE_PATH']
@@ -356,6 +364,10 @@ class OcrWidget(QWidget):
             self.is_warp = True
         else:
             self.is_warp = False
+        if add_text == "启动":
+            self.is_add = True
+        else:
+            self.is_add = False
         if use_model == "启动":
             self.use_model = True
         else:
@@ -398,6 +410,7 @@ class UpdateConfig(QWidget):
         self.config.read(self.config_path, encoding='utf8')
         self.paddleocr = self.config["paddleocr"]
         self.lang = self.paddleocr.get('LANG')
+        self.config_add = self.paddleocr.get('ADD', '关闭')
         self.config_warp = self.paddleocr.get('WARP', '关闭')
         self.config_custom_model = self.paddleocr.get('USE_MODEL', '关闭')
         self.config_table = self.paddleocr.get('TABLE', '关闭')
@@ -413,7 +426,7 @@ class UpdateConfig(QWidget):
 
         image_path = resource_path("image\logo.ico")
         self.setWindowIcon(QIcon(image_path))
-        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group, self.num_box_btn, self.hot_key_btn, self.top_key_btn = self.init_ui()
+        self.lang_box, self.auto_warp_group, self.font_btn, self.cls_file_btn, self.det_file_btn, self.rec_file_btn, self.x_btn, self.y_btn, self.use_custom_model_group, self.structure_file_btn, self.table_group, self.num_box_btn, self.hot_key_btn, self.top_key_btn, self.add_group = self.init_ui()
 
     def set_push_button(self, name, func):
         btn = QPushButton(name, self)
@@ -481,18 +494,6 @@ class UpdateConfig(QWidget):
                 group_table_no.click()
             table_group.buttonClicked.connect(self.rbclicked)
 
-            # top = QLabel('置顶')
-            # top_group = QButtonGroup(self)
-            # group_top_yes = QRadioButton('启动', self)
-            # group_top_no = QRadioButton('关闭', self)
-            # top_group.addButton(group_top_yes, 1)
-            # top_group.addButton(group_top_no, 0)
-            # if self.config_top == "启动":
-            #     group_top_yes.click()
-            # else:
-            #     group_top_no.click()
-            # top_group.buttonClicked.connect(self.rbclicked)
-
             num_box = QLabel("识别得分")
             num_box_btn = self.set_push_button(f'识别得分低于{self.num_box}丢弃', self.click_btn_x_or_y)
 
@@ -539,6 +540,18 @@ class UpdateConfig(QWidget):
                 group_warp_no.click()
             auto_warp_group.buttonClicked.connect(self.rbclicked)
 
+            add_text = QLabel('追加文本')
+            add_group = QButtonGroup(self)
+            group_add_yes = QRadioButton('启动', self)
+            group_add_no = QRadioButton('关闭', self)
+            add_group.addButton(group_add_yes, 1)
+            add_group.addButton(group_add_no, 0)
+            if self.config_add == "启动":
+                group_add_yes.click()
+            else:
+                group_add_no.click()
+            add_group.buttonClicked.connect(self.rbclicked)
+
             xy_pad = QLabel("轴向偏差范围")
             x_btn = self.set_push_button('修改X轴偏差', self.click_btn_x_or_y)
             x_btn.setText(f"x轴：{self.x_pad_num}")
@@ -561,11 +574,6 @@ class UpdateConfig(QWidget):
             hbox_font.addWidget(font_btn)
             hbox_font.addStretch(1)
 
-            # hbox_top = QHBoxLayout()
-            # hbox_top.addWidget(group_top_yes)
-            # hbox_top.addWidget(group_top_no)
-            # hbox_top.addStretch(1)
-
             hbox_table = QHBoxLayout()
             hbox_table.addWidget(group_table_yes)
             hbox_table.addWidget(group_table_no)
@@ -581,6 +589,11 @@ class UpdateConfig(QWidget):
             hbox_warp.addWidget(group_warp_no)
             hbox_warp.addStretch(1)
 
+            hbox_add = QHBoxLayout()
+            hbox_add.addWidget(group_add_yes)
+            hbox_add.addWidget(group_add_no)
+            hbox_add.addStretch(1)
+
             hbox_xy_pad = QHBoxLayout()
             # hbox_xy_pad.addWidget(x_pad)
             hbox_xy_pad.addWidget(x_btn)
@@ -594,7 +607,7 @@ class UpdateConfig(QWidget):
                 table: hbox_table,
                 structure: structure_file_btn,
                 auto_warp: hbox_warp,
-                # top: hbox_top,
+                add_text: hbox_add,
                 use_custom_model: hbox_model,
                 cls: cls_file_btn,
                 det: det_file_btn,
@@ -630,7 +643,7 @@ class UpdateConfig(QWidget):
 
             self.setGeometry(300, 300, 350, 300)
             self.setWindowTitle('修改OCR配置')
-            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group, num_box_btn, hot_key_btn, top_key_btn
+            return lang_box, auto_warp_group, font_btn, cls_file_btn, det_file_btn, rec_file_btn, x_btn, y_btn, use_custom_model_group, structure_file_btn, table_group, num_box_btn, hot_key_btn, top_key_btn, add_group
         except:
             traceback.print_exc()
 
@@ -652,11 +665,11 @@ class UpdateConfig(QWidget):
                     self.config_table = '启动'
                 else:
                     self.config_table = '关闭'
-            elif sender == self.top_group:
-                if self.top_group.checkedId() == 1:
-                    self.config_top = '启动'
+            elif sender == self.add_group:
+                if self.add_group.checkedId() == 1:
+                    self.config_add = '启动'
                 else:
-                    self.config_top = '关闭'
+                    self.config_add = '关闭'
         except:
             traceback.print_exc()
 
@@ -734,6 +747,7 @@ class UpdateConfig(QWidget):
             self.config.set("paddleocr", "TOP_KEY", self.config_top_key)
             self.OcrWidget.set_top_key(self.config_top_key)
             self.config.set("paddleocr", "WARP", self.config_warp)
+            self.config.set("paddleocr", "ADD", self.config_add)
             self.config.set("paddleocr", "NUM_BOX", self.num_box)
             self.config.set("paddleocr", "X_PAD", self.x_pad_num)
             self.config.set("paddleocr", "Y_PAD", self.y_pad_num)
