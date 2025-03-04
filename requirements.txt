@@ -1,0 +1,11 @@
+altgraph==0.17
+chardet==4.0.0
+future==0.18.2
+keyboard
+pefile==2019.4.18
+PySide2==5.15.2.1
+pywin32-ctypes==0.2.0
+requests==2.25.1
+shiboken2==5.15.2.1
+urllib3==1.26.5
+

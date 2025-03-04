@@ -1,0 +1,9 @@
+/.idea/
+__pycache__
+
+*.pyc
+build
+dist
+*.spec
+/output/
+ocr_venv
