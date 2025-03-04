@@ -2,7 +2,11 @@
 
 ### 离线版环境及pyinstaller打包
 
+windows11文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr_3.10.md)
 文档可看 [paddleocr离线版打包文档](https://github.com/libaibuaidufu/pyqt_ocr/blob/paddleocr-offline/readme_paddleocr.md)
+###### 2025-03-04 更新
+1. 版本更新代码参数调整
+2. windows11使用
 ###### 2022-03-09 更新
 1. 增加自动追加设置
 2. 修复置顶bug
